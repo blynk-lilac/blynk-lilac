@@ -3,9 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageSquare, Send, Image as ImageIcon, X } from "lucide-react";
+import { Heart, MessageSquare } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -35,13 +34,8 @@ interface Post {
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [content, setContent] = useState("");
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [createStoryOpen, setCreateStoryOpen] = useState(false);
-  const [doubleClickTimeout, setDoubleClickTimeout] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -101,44 +95,6 @@ export default function Feed() {
     setPosts(data || []);
   };
 
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const totalFiles = mediaFiles.length + files.length;
-    
-    if (totalFiles > 10) {
-      toast.error("Máximo de 10 mídias por post (5 fotos + 5 vídeos)");
-      return;
-    }
-
-    const images = files.filter(f => f.type.startsWith('image/'));
-    const videos = files.filter(f => f.type.startsWith('video/'));
-    const currentImages = mediaFiles.filter(f => f.type.startsWith('image/')).length;
-    const currentVideos = mediaFiles.filter(f => f.type.startsWith('video/')).length;
-
-    if (currentImages + images.length > 5) {
-      toast.error("Máximo de 5 fotos por post");
-      return;
-    }
-
-    if (currentVideos + videos.length > 5) {
-      toast.error("Máximo de 5 vídeos por post");
-      return;
-    }
-
-    const newFiles = [...mediaFiles, ...files];
-    setMediaFiles(newFiles);
-
-    const previews = files.map(file => URL.createObjectURL(file));
-    setMediaPreviews([...mediaPreviews, ...previews]);
-  };
-
-  const removeMedia = (index: number) => {
-    const newFiles = mediaFiles.filter((_, i) => i !== index);
-    const newPreviews = mediaPreviews.filter((_, i) => i !== index);
-    setMediaFiles(newFiles);
-    setMediaPreviews(newPreviews);
-  };
-
   const handleLike = async (postId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -165,63 +121,6 @@ export default function Feed() {
     }
   };
 
-  const handleCreatePost = async () => {
-    if (!content.trim() && mediaFiles.length === 0) {
-      toast.error("Digite algo ou adicione uma mídia");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const mediaUrls: string[] = [];
-
-      for (const file of mediaFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('post-images')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error("Upload error:", uploadError);
-          throw uploadError;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('post-images')
-          .getPublicUrl(fileName);
-
-        mediaUrls.push(publicUrl);
-      }
-
-      const { error } = await supabase.from("posts").insert({
-        user_id: user.id,
-        content,
-        media_urls: mediaUrls.length > 0 ? mediaUrls : null,
-      });
-
-      if (error) throw error;
-
-      setContent("");
-      setMediaFiles([]);
-      setMediaPreviews([]);
-      toast.success("Post criado!");
-      loadPosts();
-    } catch (error: any) {
-      console.error("Post error:", error);
-      toast.error(error.message || "Erro ao criar post");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDoubleClick = () => {
     setCreateStoryOpen(true);
   };
@@ -239,62 +138,6 @@ export default function Feed() {
           <div className="mb-4">
             <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
           </div>
-
-          {/* Criar Post - Compacto */}
-          <Card className="p-3 bg-card border border-border mb-3 rounded-xl">
-            <Textarea
-              placeholder="No que você está pensando?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[60px] bg-transparent border-0 text-foreground resize-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground"
-            />
-            {mediaPreviews.length > 0 && (
-              <div className="mt-2 grid grid-cols-3 gap-1">
-                {mediaPreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square">
-                    {mediaFiles[index]?.type.startsWith('video/') ? (
-                      <video src={preview} className="w-full h-full object-cover rounded-lg" />
-                    ) : (
-                      <img src={preview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-1 right-1 h-5 w-5 p-0 bg-black/60 hover:bg-black/80 rounded-full"
-                      onClick={() => removeMedia(index)}
-                    >
-                      <X className="h-3 w-3 text-white" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center gap-2 mt-2 border-t border-border pt-2">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={handleMediaChange}
-                className="hidden"
-                id="media-upload"
-                multiple
-              />
-              <label htmlFor="media-upload">
-                <Button variant="ghost" size="sm" className="cursor-pointer h-7 px-2" asChild>
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <ImageIcon className="h-4 w-4" />
-                  </span>
-                </Button>
-              </label>
-              <Button
-                onClick={handleCreatePost}
-                disabled={loading || (!content.trim() && mediaFiles.length === 0)}
-                size="sm"
-                className="ml-auto h-7 px-3 bg-primary hover:bg-primary/90 text-xs font-semibold"
-              >
-                Publicar
-              </Button>
-            </div>
-          </Card>
 
           {/* Posts - Estilo Threads */}
           <div className="space-y-3">

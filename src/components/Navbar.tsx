@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, MessageSquare, User, Menu } from "lucide-react";
+import { Home, Users, MessageSquare, User, Plus, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -17,8 +17,9 @@ export default function Navbar() {
   const navItems = [
     { path: "/feed", label: "Feed", icon: Home },
     { path: "/friends", label: "Amigos", icon: Users },
+    { path: "/create", label: "Criar", icon: Plus },
+    { path: "/videos", label: "Vídeos", icon: Video },
     { path: "/messages", label: "Mensagens", icon: MessageSquare },
-    { path: "/profile", label: "Perfil", icon: User },
   ];
 
   return (
