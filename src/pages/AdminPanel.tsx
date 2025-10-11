@@ -74,7 +74,7 @@ export default function AdminPanel() {
       }
     } catch (error) {
       setIsAdmin(false);
-      toast.error("Erro ao verificar permissões");
+      toast.error("Erro ao verificar pedidos");
     } finally {
       setLoading(false);
     }
