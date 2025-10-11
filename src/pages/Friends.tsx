@@ -9,12 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
+import VerificationBadge from "@/components/VerificationBadge";
+
 interface User {
   id: string;
   username: string;
   full_name: string;
   avatar_url: string;
   verified?: boolean;
+  badge_type?: string | null;
 }
 
 interface FriendRequest {
@@ -33,10 +36,12 @@ export default function Friends() {
   const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    loadCurrentUser();
-    loadUsers();
-    loadFriendRequests();
-    loadFriends();
+    const init = async () => {
+      await loadCurrentUser();
+      loadFriendRequests();
+      loadFriends();
+    };
+    init();
 
     const channel = supabase
       .channel("friend-updates")
@@ -62,14 +67,20 @@ export default function Friends() {
 
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setCurrentUserId(user.id);
+    if (user) {
+      setCurrentUserId(user.id);
+      loadUsers(user.id);
+    }
   };
 
-  const loadUsers = async () => {
+  const loadUsers = async (userId?: string) => {
+    const id = userId || currentUserId;
+    if (!id) return;
+    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .neq("id", currentUserId);
+      .neq("id", id);
 
     if (error) {
       toast.error("Erro ao carregar usuários");

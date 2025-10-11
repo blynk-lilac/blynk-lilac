@@ -15,6 +15,7 @@ import Chat from "./pages/Chat";
 import Comments from "./pages/Comments";
 import CommentsVideo from "./pages/CommentsVideo";
 import EditProfile from "./pages/EditProfile";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/chat/:userId" element={<Chat />} />
