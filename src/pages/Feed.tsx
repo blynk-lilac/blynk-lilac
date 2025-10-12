@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageSquare } from "lucide-react";
+import { Heart, MessageSquare, Repeat2 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -13,6 +13,7 @@ import CreateStory from "@/components/CreateStory";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import VerificationBadge from "@/components/VerificationBadge";
+import PostMenu from "@/components/PostMenu";
 
 interface Post {
   id: string;
@@ -78,7 +79,8 @@ export default function Feed() {
           username,
           full_name,
           avatar_url,
-          verified
+          verified,
+          badge_type
         ),
         post_likes (
           user_id
@@ -127,6 +129,33 @@ export default function Feed() {
     setCreateStoryOpen(true);
   };
 
+  const handleRepost = async (postId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      const { error } = await supabase
+        .from("posts")
+        .insert({
+          user_id: user.id,
+          content: post.content,
+          media_urls: post.media_urls,
+          image_url: post.image_url,
+          video_url: post.video_url,
+        });
+
+      if (error) throw error;
+
+      toast.success("Publicação recompartilhada!");
+      loadPosts();
+    } catch (error: any) {
+      toast.error("Erro ao recompartilhar");
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div 
@@ -159,7 +188,7 @@ export default function Feed() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 mb-1">
                       <Link 
-                        to={`/chat/${post.profiles?.id}`} 
+                        to={`/profile/${post.profiles?.id}`} 
                         className="hover:underline"
                       >
                         <span className="text-sm font-semibold text-foreground">
@@ -175,6 +204,11 @@ export default function Feed() {
                           locale: ptBR,
                         })}
                       </span>
+                      <PostMenu 
+                        postId={post.id}
+                        isOwner={post.user_id === currentUserId}
+                        onDelete={loadPosts}
+                      />
                     </div>
 
                     {/* Conteúdo do Post */}
@@ -245,6 +279,14 @@ export default function Feed() {
                         onClick={() => navigate(`/comments/${post.id}`)}
                       >
                         <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-auto p-0 hover:bg-transparent"
+                        onClick={() => handleRepost(post.id)}
+                      >
+                        <Repeat2 className="h-5 w-5 text-muted-foreground" />
                       </Button>
                     </div>
 

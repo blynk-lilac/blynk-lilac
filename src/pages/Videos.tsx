@@ -75,7 +75,8 @@ export default function Videos() {
         profiles (
           username,
           avatar_url,
-          verified
+          verified,
+          badge_type
         ),
         verification_video_likes (user_id),
         verification_video_comments (id)
