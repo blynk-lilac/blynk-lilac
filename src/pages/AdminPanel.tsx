@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Shield } from "lucide-react";
+import { CheckCircle, XCircle, Shield, Flag, Eye } from "lucide-react";
 import badgeGold from "@/assets/badge-gold.webp";
 import badgePurple from "@/assets/badge-purple.png";
 import badgeSilver from "@/assets/badge-silver.webp";
+import { Link } from "react-router-dom";
 
 interface VerificationRequest {
   id: string;
@@ -33,6 +34,16 @@ interface BadgeOption {
   icon: string | null;
 }
 
+interface Report {
+  id: string;
+  reporter_id: string;
+  reported_content_id: string;
+  content_type: string;
+  reason: string;
+  status: string;
+  created_at: string;
+}
+
 const badgeOptions: BadgeOption[] = [
   { type: 'blue', name: 'Verificado Azul', icon: null },
   { type: 'gold', name: 'Verificado Ouro', icon: badgeGold },
@@ -42,6 +53,7 @@ const badgeOptions: BadgeOption[] = [
 
 export default function AdminPanel() {
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedBadges, setSelectedBadges] = useState<Record<string, string>>({});
@@ -71,6 +83,7 @@ export default function AdminPanel() {
       } else {
         setIsAdmin(true);
         loadRequests();
+        loadReports();
       }
     } catch (error) {
       setIsAdmin(false);
@@ -100,6 +113,21 @@ export default function AdminPanel() {
     }
 
     setRequests(data || []);
+  };
+
+  const loadReports = async () => {
+    const { data, error } = await supabase
+      .from("reports")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Erro ao carregar denúncias");
+      return;
+    }
+
+    setReports(data || []);
   };
 
   const handleApprove = async (requestId: string, userId: string) => {
@@ -209,6 +237,12 @@ export default function AdminPanel() {
                   <Badge className="ml-2 bg-accent">{requests.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="reports" className="flex-1">
+                Denúncias
+                {reports.length > 0 && (
+                  <Badge className="ml-2 bg-destructive">{reports.length}</Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="requests" className="space-y-4">
@@ -272,6 +306,58 @@ export default function AdminPanel() {
                         >
                           <XCircle className="h-4 w-4 mr-2" />
                           Rejeitar
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-4">
+              {reports.length === 0 ? (
+                <Card className="p-8 bg-card border-border text-center">
+                  <p className="text-muted-foreground">Nenhuma denúncia pendente</p>
+                </Card>
+              ) : (
+                reports.map((report) => (
+                  <Card key={report.id} className="p-6 bg-card border-border">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <Flag className="h-6 w-6 text-destructive" />
+                        <div className="flex-1">
+                          <p className="font-semibold">Tipo: {report.content_type}</p>
+                          <p className="text-sm text-muted-foreground">Motivo: {report.reason}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Denunciado em: {new Date(report.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-4 border-t">
+                        <Link to={`/comments/${report.reported_content_id}`} className="flex-1">
+                          <Button variant="outline" className="w-full">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Conteúdo
+                          </Button>
+                        </Link>
+                        <Button
+                          onClick={async () => {
+                            try {
+                              await supabase
+                                .from("reports")
+                                .update({ status: "reviewed" })
+                                .eq("id", report.id);
+                              toast.success("Denúncia marcada como revisada");
+                              loadReports();
+                            } catch {
+                              toast.error("Erro ao atualizar");
+                            }
+                          }}
+                          className="flex-1"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Marcar como Revisada
                         </Button>
                       </div>
                     </div>

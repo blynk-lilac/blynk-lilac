@@ -3,13 +3,19 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageSquare, Share2, Upload } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Heart, MessageSquare, Share2, Upload, MoreVertical } from "lucide-react";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import VerificationBadge from "@/components/VerificationBadge";
 
@@ -200,13 +206,17 @@ export default function Videos() {
 
                 <div className="absolute bottom-20 left-4 right-20 text-white">
                   <div className="flex items-center gap-2 mb-2">
-                    <Avatar className="h-10 w-10 ring-2 ring-white">
-                      <AvatarImage src={video.profiles.avatar_url} />
-                      <AvatarFallback>
-                        {video.profiles.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-semibold">{video.profiles.username}</span>
+                    <Link to={`/profile/${video.user_id}`}>
+                      <Avatar className="h-10 w-10 ring-2 ring-white cursor-pointer">
+                        <AvatarImage src={video.profiles.avatar_url} />
+                        <AvatarFallback>
+                          {video.profiles.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <Link to={`/profile/${video.user_id}`} className="hover:underline">
+                      <span className="font-semibold">{video.profiles.username}</span>
+                    </Link>
                     {video.profiles.verified && (
                       <VerificationBadge badgeType={video.profiles.badge_type} />
                     )}
@@ -261,6 +271,39 @@ export default function Videos() {
                       <Share2 className="h-7 w-7 text-white" />
                     </Button>
                   </div>
+
+                  {video.user_id === currentUserId && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20"
+                        >
+                          <MoreVertical className="h-7 w-7 text-white" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            try {
+                              await supabase
+                                .from("verification_videos")
+                                .delete()
+                                .eq("id", video.id);
+                              toast.success("Vídeo eliminado");
+                              loadVideos();
+                            } catch {
+                              toast.error("Erro ao eliminar");
+                            }
+                          }}
+                          className="text-destructive"
+                        >
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
             ))}

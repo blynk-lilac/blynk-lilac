@@ -55,7 +55,17 @@ export default function PostMenu({ postId, isOwner, onEdit, onDelete }: PostMenu
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Criar notificação para admins
+      // Criar denúncia
+      const { error } = await supabase.from("reports").insert({
+        reporter_id: user.id,
+        reported_content_id: postId,
+        content_type: "post",
+        reason: reportReason,
+      });
+
+      if (error) throw error;
+
+      // Notificar admins
       const { data: admins } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -67,7 +77,7 @@ export default function PostMenu({ postId, isOwner, onEdit, onDelete }: PostMenu
             user_id: admin.user_id,
             type: "report",
             title: "Nova Denúncia",
-            message: `Denúncia: ${reportReason}`,
+            message: `Denúncia de publicação: ${reportReason}`,
             related_id: postId,
           });
         }

@@ -17,7 +17,9 @@ import {
   User, 
   Shield, 
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  Link as LinkIcon,
+  Copy
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -63,9 +65,10 @@ export default function EditProfile() {
 
     // Verificar se é admin
     const { data: adminData } = await supabase
-      .from("admin_users")
+      .from("user_roles")
       .select("*")
       .eq("user_id", user.id)
+      .eq("role", "admin")
       .maybeSingle();
     
     setIsAdmin(!!adminData);
@@ -552,6 +555,63 @@ export default function EditProfile() {
                   >
                     Salvar Configurações
                   </Button>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Link do Perfil
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Link do seu perfil:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={`${window.location.origin}/profile/${profile.id}`}
+                          readOnly
+                          className="bg-input border-border text-foreground"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `${window.location.origin}/profile/${profile.id}`
+                            );
+                            toast.success("Link copiado!");
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        UUID do seu perfil:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={profile.id}
+                          readOnly
+                          className="bg-input border-border text-foreground font-mono text-xs"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(profile.id);
+                            toast.success("UUID copiado!");
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 

@@ -313,9 +313,11 @@ export type Database = {
           id: string
           image_url: string | null
           media_urls: string[] | null
+          original_post_id: string | null
           updated_at: string | null
           user_id: string
           video_url: string | null
+          visibility: string | null
         }
         Insert: {
           content: string
@@ -323,9 +325,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           media_urls?: string[] | null
+          original_post_id?: string | null
           updated_at?: string | null
           user_id: string
           video_url?: string | null
+          visibility?: string | null
         }
         Update: {
           content?: string
@@ -333,11 +337,20 @@ export type Database = {
           id?: string
           image_url?: string | null
           media_urls?: string[] | null
+          original_post_id?: string | null
           updated_at?: string | null
           user_id?: string
           video_url?: string | null
+          visibility?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "posts_original_post_id_fkey"
+            columns: ["original_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "posts_user_id_fkey"
             columns: ["user_id"]
@@ -383,6 +396,42 @@ export type Database = {
           updated_at?: string | null
           username?: string
           verified?: boolean | null
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          content_type: string
+          created_at: string
+          id: string
+          reason: string
+          reported_content_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          id?: string
+          reason: string
+          reported_content_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reported_content_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
         }
         Relationships: []
       }
