@@ -126,6 +126,30 @@ export type Database = {
           },
         ]
       }
+      device_registrations: {
+        Row: {
+          created_at: string
+          device_fingerprint: string
+          id: string
+          last_login: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint: string
+          id?: string
+          last_login?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string
+          id?: string
+          last_login?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string | null
@@ -676,6 +700,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_super_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }

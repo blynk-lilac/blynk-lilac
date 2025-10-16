@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, MessageSquare, User, Plus, Video, Shield, Menu } from "lucide-react";
+import { Home, Users, MessageSquare, User, Plus, Video, Shield, Menu, FileText, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -25,14 +25,9 @@ export default function Navbar() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
-
-    setIsAdmin(!!data);
+    // Verificar se é super admin (email específico)
+    const isSuperAdmin = user.email === 'isaacmuaco2@gmail.com' || user.email === 'isaacmuaco583@gmail.com';
+    setIsAdmin(isSuperAdmin);
   };
 
   const navItems = [
@@ -89,6 +84,28 @@ export default function Navbar() {
                       Painel Admin
                     </Button>
                   )}
+                  
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/terms");
+                    }}
+                  >
+                    <FileText className="mr-2 h-5 w-5" />
+                    Termos e Políticas
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/help");
+                    }}
+                  >
+                    <HelpCircle className="mr-2 h-5 w-5" />
+                    Dúvidas e Ajuda
+                  </Button>
                   
                   <Button
                     variant="destructive"

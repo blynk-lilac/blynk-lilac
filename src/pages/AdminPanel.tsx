@@ -70,14 +70,10 @@ export default function AdminPanel() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (error || !data) {
+      // Verificar se é super admin (email específico)
+      const isSuperAdmin = user.email === 'isaacmuaco2@gmail.com' || user.email === 'isaacmuaco583@gmail.com';
+      
+      if (!isSuperAdmin) {
         setIsAdmin(false);
         toast.error("Você não tem permissão para acessar esta página");
       } else {
