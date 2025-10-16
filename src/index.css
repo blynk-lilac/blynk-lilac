@@ -8,72 +8,77 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    /* Facebook/Meta Style Design System */
+    --background: 0 0% 96%;
+    --foreground: 0 0% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
+    --card-foreground: 0 0% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
+    --popover-foreground: 0 0% 13%;
 
-    --primary: 0 0% 0%;
+    /* Facebook Blue - #1877F2 */
+    --primary: 214 89% 52%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary-foreground: 0 0% 13%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 0 0% 10%;
+    --accent: 214 89% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 92%;
-    --input: 0 0% 96%;
-    --ring: 0 0% 0%;
+    --border: 0 0% 88%;
+    --input: 0 0% 100%;
+    --ring: 214 89% 52%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --gradient-instagram: linear-gradient(45deg, hsl(340 75% 55%) 0%, hsl(262 52% 47%) 50%, hsl(45 93% 47%) 100%);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.08);
+    /* Facebook gradients and shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(214 89% 52%), hsl(214 89% 62%));
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-fb: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
   }
 
   .dark {
-    --background: 0 0% 5%;
-    --foreground: 0 0% 100%;
+    --background: 24 9% 10%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 100%;
+    --card: 24 9% 12%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 24 9% 12%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 214 89% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 24 9% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 24 9% 15%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 0 0% 90%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 214 89% 52%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 100%;
+    --border: 24 9% 20%;
+    --input: 24 9% 15%;
+    --ring: 214 89% 52%;
 
-    --shadow-card: 0 1px 2px rgba(255, 255, 255, 0.04);
-    --shadow-hover: 0 2px 8px rgba(255, 255, 255, 0.08);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-fb: 0 2px 4px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.3);
   }
 }
 
