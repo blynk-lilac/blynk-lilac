@@ -9,16 +9,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, ArrowLeft, Reply } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import VerificationBadge from "@/components/VerificationBadge";
+import Navbar from "@/components/Navbar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Comment {
   id: string;
   content: string;
   created_at: string;
   parent_comment_id: string | null;
+  user_id: string;
   profiles: {
     username: string;
     full_name: string;
     avatar_url: string;
+    verified?: boolean;
+    badge_type?: string | null;
   };
   comment_likes: { user_id: string }[];
 }
@@ -27,10 +33,13 @@ interface Post {
   id: string;
   content: string;
   created_at: string;
+  user_id: string;
   profiles: {
     username: string;
     full_name: string;
     avatar_url: string;
+    verified?: boolean;
+    badge_type?: string | null;
   };
 }
 
@@ -82,7 +91,9 @@ export default function Comments() {
         profiles (
           username,
           full_name,
-          avatar_url
+          avatar_url,
+          verified,
+          badge_type
         )
       `)
       .eq("id", postId)
@@ -104,7 +115,9 @@ export default function Comments() {
         profiles (
           username,
           full_name,
-          avatar_url
+          avatar_url,
+          verified,
+          badge_type
         ),
         comment_likes (
           user_id
@@ -194,6 +207,9 @@ export default function Comments() {
               <span className="font-semibold text-sm text-foreground">
                 {comment.profiles?.full_name}
               </span>
+              {comment.profiles?.verified && (
+                <VerificationBadge badgeType={comment.profiles?.badge_type} className="w-4 h-4" />
+              )}
               <span className="text-xs text-muted-foreground">
                 @{comment.profiles?.username}
               </span>
@@ -246,80 +262,86 @@ export default function Comments() {
   if (!post) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="container mx-auto max-w-2xl px-4 py-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/feed")}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-        </div>
-      </div>
-
-      <div className="container mx-auto max-w-2xl px-4 py-6">
-        <Card className="p-6 bg-card border-border mb-6">
-          <div className="flex items-start gap-3">
-            <Avatar>
-              <AvatarImage src={post.profiles?.avatar_url} />
-              <AvatarFallback>
-                {post.profiles?.username?.[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground">
-                  {post.profiles?.full_name}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  @{post.profiles?.username}
-                </span>
-              </div>
-              <p className="mt-2 text-foreground">{post.content}</p>
-            </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="sticky top-[72px] z-10 bg-background border-b border-border">
+          <div className="container mx-auto max-w-2xl px-4 py-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/feed")}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-4 bg-card border-border mb-6">
-          {replyTo && (
-            <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
-              <Reply className="h-3 w-3" />
-              Respondendo a comentário
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2"
-                onClick={() => setReplyTo(null)}
-              >
-                Cancelar
-              </Button>
+        <div className="container mx-auto max-w-2xl px-4 py-6">
+          <Card className="p-6 bg-card border-border mb-6">
+            <div className="flex items-start gap-3">
+              <Avatar>
+                <AvatarImage src={post.profiles?.avatar_url} />
+                <AvatarFallback>
+                  {post.profiles?.username?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">
+                    {post.profiles?.full_name}
+                  </span>
+                  {post.profiles?.verified && (
+                    <VerificationBadge badgeType={post.profiles?.badge_type} className="w-4 h-4" />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    @{post.profiles?.username}
+                  </span>
+                </div>
+                <p className="mt-2 text-foreground">{post.content}</p>
+              </div>
             </div>
-          )}
-          <Textarea
-            placeholder="Adicione um comentário..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-20 bg-input border-border text-foreground resize-none"
-          />
-          <Button
-            onClick={handleComment}
-            disabled={loading || !newComment.trim()}
-            className="mt-3 w-full bg-primary text-primary-foreground"
-          >
-            Comentar
-          </Button>
-        </Card>
+          </Card>
 
-        <div className="space-y-4">
-          {comments
-            .filter(c => !c.parent_comment_id)
-            .map(comment => renderComment(comment))}
+          <Card className="p-4 bg-card border-border mb-6">
+            {replyTo && (
+              <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
+                <Reply className="h-3 w-3" />
+                Respondendo a comentário
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => setReplyTo(null)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            )}
+            <Textarea
+              placeholder="Adicione um comentário..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="min-h-20 bg-input border-border text-foreground resize-none"
+            />
+            <Button
+              onClick={handleComment}
+              disabled={loading || !newComment.trim()}
+              className="mt-3 w-full bg-primary text-primary-foreground"
+            >
+              Comentar
+            </Button>
+          </Card>
+
+          <div className="space-y-4">
+            {comments
+              .filter(c => !c.parent_comment_id)
+              .map(comment => renderComment(comment))}
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

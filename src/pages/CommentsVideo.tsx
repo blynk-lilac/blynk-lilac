@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface Comment {
   id: string;
@@ -20,6 +21,8 @@ interface Comment {
   profiles: {
     username: string;
     avatar_url: string;
+    verified?: boolean;
+    badge_type?: string | null;
   };
 }
 
@@ -65,7 +68,9 @@ export default function CommentsVideo() {
         *,
         profiles (
           username,
-          avatar_url
+          avatar_url,
+          verified,
+          badge_type
         )
       `)
       .eq("video_id", videoId)
@@ -170,9 +175,14 @@ export default function CommentsVideo() {
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">
-                        {comment.profiles?.username}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">
+                          {comment.profiles?.username}
+                        </span>
+                        {comment.profiles?.verified && (
+                          <VerificationBadge badgeType={comment.profiles?.badge_type} className="w-4 h-4" />
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(comment.created_at), {
                           addSuffix: true,
