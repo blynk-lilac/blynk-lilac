@@ -166,27 +166,25 @@ export default function Feed() {
 
         <div className="container mx-auto max-w-2xl px-3 py-4">
           {/* Stories Bar */}
-          <div className="mb-4">
-            <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
-          </div>
+          <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
 
-          {/* Posts - Estilo Threads */}
-          <div className="space-y-3">
+          {/* Posts - Estilo Facebook */}
+          <div className="space-y-4">
             {posts.map((post) => (
-              <Card key={post.id} className="bg-card border border-border rounded-xl overflow-hidden">
+              <Card key={post.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-shadow">
                 {/* Header do Post */}
-                <div className="p-3 flex items-start gap-2">
+                <div className="p-4 flex items-start gap-3">
                   <Link to={`/profile/${post.profiles?.id}`}>
-                    <Avatar className="h-9 w-9 cursor-pointer ring-1 ring-border">
+                    <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
                       <AvatarImage src={post.profiles?.avatar_url} />
-                      <AvatarFallback className="text-xs bg-muted">
+                      <AvatarFallback className="text-sm bg-primary/10 text-primary font-semibold">
                         {post.profiles?.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-1">
+                    <div className="flex items-center gap-1.5">
                       <Link 
                         to={`/profile/${post.profiles?.id}`} 
                         className="hover:underline"
@@ -198,116 +196,127 @@ export default function Feed() {
                       {post.profiles?.verified && (
                         <VerificationBadge badgeType={post.profiles?.badge_type} className="w-4 h-4" />
                       )}
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {formatDistanceToNow(new Date(post.created_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </span>
-                      <PostMenu 
-                        postId={post.id}
-                        isOwner={post.user_id === currentUserId}
-                        onDelete={loadPosts}
-                      />
                     </div>
-
-                    {/* Conteúdo do Post */}
-                    {post.content && (
-                      <p className="text-sm text-foreground mb-2 break-words">{post.content}</p>
-                    )}
-
-                    {/* Mídia - Tamanho controlado tipo Threads */}
-                    {post.media_urls && post.media_urls.length > 0 && (
-                      <div className="mb-2 rounded-lg overflow-hidden">
-                        {post.media_urls.map((url, index) => {
-                          const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
-                          return isVideo ? (
-                            <video 
-                              key={index}
-                              src={url} 
-                              controls 
-                              className="w-full max-h-[400px] object-cover rounded-lg"
-                            />
-                          ) : (
-                            <img 
-                              key={index}
-                              src={url} 
-                              alt="Post" 
-                              className="w-full max-h-[400px] object-cover rounded-lg"
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {post.image_url && !post.media_urls && (
-                      <img 
-                        src={post.image_url} 
-                        alt="Post" 
-                        className="w-full max-h-[400px] object-cover rounded-lg mb-2"
-                      />
-                    )}
-
-                    {post.video_url && !post.media_urls && (
-                      <video 
-                        src={post.video_url} 
-                        controls 
-                        className="w-full max-h-[400px] object-cover rounded-lg mb-2"
-                      />
-                    )}
-
-                    {/* Ações do Post */}
-                    <div className="flex items-center gap-4">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-auto p-0 hover:bg-transparent"
-                        onClick={() => handleLike(post.id)}
-                      >
-                        <Heart 
-                          className={`h-5 w-5 transition-all ${
-                            post.post_likes?.some(like => like.user_id === currentUserId)
-                              ? "fill-red-500 text-red-500"
-                              : "text-muted-foreground"
-                          }`}
-                        />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-auto p-0 hover:bg-transparent"
-                        onClick={() => navigate(`/comments/${post.id}`)}
-                      >
-                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-auto p-0 hover:bg-transparent"
-                        onClick={() => handleRepost(post.id)}
-                      >
-                        <Repeat2 className="h-5 w-5 text-muted-foreground" />
-                      </Button>
-                    </div>
-
-                    {/* Info de curtidas e comentários */}
-                    <div className="mt-2 space-y-0.5">
-                      {post.post_likes && post.post_likes.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {post.post_likes.length} {post.post_likes.length === 1 ? 'curtida' : 'curtidas'}
-                        </p>
-                      )}
-
-                      {post.comments && post.comments.length > 0 && (
-                        <button
-                          onClick={() => navigate(`/comments/${post.id}`)}
-                          className="text-xs text-muted-foreground hover:underline"
-                        >
-                          {post.comments.length === 1 ? '1 comentário' : `${post.comments.length} comentários`}
-                        </button>
-                      )}
-                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
+                    </span>
                   </div>
+
+                  <PostMenu 
+                    postId={post.id}
+                    isOwner={post.user_id === currentUserId}
+                    onDelete={loadPosts}
+                  />
+                </div>
+
+                {/* Conteúdo do Post */}
+                {post.content && (
+                  <p className="px-4 pb-3 text-sm text-foreground break-words whitespace-pre-wrap">{post.content}</p>
+                )}
+
+                {/* Mídia */}
+                {post.media_urls && post.media_urls.length > 0 && (
+                  <div className="w-full bg-muted/30">
+                    {post.media_urls.map((url, index) => {
+                      const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+                      return isVideo ? (
+                        <video 
+                          key={index}
+                          src={url} 
+                          controls 
+                          className="w-full max-h-[500px] object-contain bg-black"
+                        />
+                      ) : (
+                        <img 
+                          key={index}
+                          src={url} 
+                          alt="Post" 
+                          className="w-full max-h-[500px] object-cover"
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
+                {post.image_url && !post.media_urls && (
+                  <div className="w-full bg-muted/30">
+                    <img 
+                      src={post.image_url} 
+                      alt="Post" 
+                      className="w-full max-h-[500px] object-cover"
+                    />
+                  </div>
+                )}
+
+                {post.video_url && !post.media_urls && (
+                  <div className="w-full bg-muted/30">
+                    <video 
+                      src={post.video_url} 
+                      controls 
+                      className="w-full max-h-[500px] object-contain bg-black"
+                    />
+                  </div>
+                )}
+
+                {/* Estatísticas */}
+                <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border">
+                  <span>
+                    {post.post_likes && post.post_likes.length > 0 && (
+                      <span className="hover:underline cursor-pointer">
+                        {post.post_likes.length} {post.post_likes.length === 1 ? 'curtida' : 'curtidas'}
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    {post.comments && post.comments.length > 0 && (
+                      <button
+                        onClick={() => navigate(`/comments/${post.id}`)}
+                        className="hover:underline"
+                      >
+                        {post.comments.length === 1 ? '1 comentário' : `${post.comments.length} comentários`}
+                      </button>
+                    )}
+                  </span>
+                </div>
+
+                {/* Ações do Post */}
+                <div className="px-4 pb-3 pt-2 flex items-center gap-1 border-t border-border">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
+                    onClick={() => handleLike(post.id)}
+                  >
+                    <Heart 
+                      className={`h-5 w-5 transition-all ${
+                        post.post_likes?.some(like => like.user_id === currentUserId)
+                          ? "fill-red-500 text-red-500"
+                          : "text-muted-foreground"
+                      }`}
+                    />
+                    <span className="text-sm font-medium text-muted-foreground">Curtir</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
+                    onClick={() => navigate(`/comments/${post.id}`)}
+                  >
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Comentar</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
+                    onClick={() => handleRepost(post.id)}
+                  >
+                    <Repeat2 className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Compartilhar</span>
+                  </Button>
                 </div>
               </Card>
             ))}

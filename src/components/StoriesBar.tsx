@@ -104,66 +104,78 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-4 px-4 -mx-4 scrollbar-hide">
-        {/* Próprio story ou criar novo */}
-        <div
-          onClick={onCreateStory}
-          className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer"
-        >
-          <div className="relative">
-            <Avatar className="h-16 w-16 ring-2 ring-border">
-              <AvatarImage src={stories.find(s => s.user_id === currentUserId)?.profiles.avatar_url} />
-              <AvatarFallback className="bg-muted">Você</AvatarFallback>
-            </Avatar>
-            {!hasOwnStory && (
-              <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-primary flex items-center justify-center ring-2 ring-background">
-                <Plus className="h-3 w-3 text-white" />
+      <div className="bg-card rounded-xl border border-border p-4 mb-4">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {/* Criar novo story */}
+          <div
+            onClick={onCreateStory}
+            className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-dashed border-primary/50">
+                <Plus className="h-8 w-8 text-primary" />
               </div>
-            )}
+            </div>
+            <span className="text-xs font-medium text-foreground">Criar</span>
           </div>
-          <span className="text-xs text-foreground max-w-[64px] truncate">
-            {hasOwnStory ? "Seu story" : "Criar"}
-          </span>
-        </div>
 
-        {/* Stories de outros usuários */}
-        {Object.entries(groupedStories)
-          .filter(([userId]) => userId !== currentUserId)
-          .map(([userId, userStories]) => {
-            const firstStory = userStories[0];
-            return (
-              <div
-                key={userId}
-                onClick={() => handleViewStory(firstStory)}
-                className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer"
-              >
-                <div className="p-0.5 rounded-full bg-gradient-to-tr from-primary via-secondary to-accent">
-                  <div className="bg-background rounded-full p-0.5">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={firstStory.profiles.avatar_url} />
-                      <AvatarFallback className="bg-muted">
-                        {firstStory.profiles.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
+          {/* Seu story se existir */}
+          {hasOwnStory && (
+            <div
+              onClick={() => handleViewStory(groupedStories[currentUserId][0])}
+              className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <div className="p-1 rounded-full bg-gradient-to-tr from-primary via-accent to-secondary">
+                <div className="bg-card rounded-full p-1">
+                  <Avatar className="h-16 w-16 ring-2 ring-card">
+                    <AvatarImage src={groupedStories[currentUserId][0].profiles.avatar_url} />
+                    <AvatarFallback className="bg-muted text-foreground">Você</AvatarFallback>
+                  </Avatar>
                 </div>
-                <span className="text-xs text-foreground max-w-[64px] truncate">
-                  {firstStory.profiles.username}
-                </span>
               </div>
-            );
-          })}
+              <span className="text-xs font-medium text-foreground max-w-[80px] truncate">Seu story</span>
+            </div>
+          )}
+
+          {/* Stories de outros usuários */}
+          {Object.entries(groupedStories)
+            .filter(([userId]) => userId !== currentUserId)
+            .map(([userId, userStories]) => {
+              const firstStory = userStories[0];
+              return (
+                <div
+                  key={userId}
+                  onClick={() => handleViewStory(firstStory)}
+                  className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  <div className="p-1 rounded-full bg-gradient-to-tr from-primary via-accent to-secondary">
+                    <div className="bg-card rounded-full p-1">
+                      <Avatar className="h-16 w-16 ring-2 ring-card">
+                        <AvatarImage src={firstStory.profiles.avatar_url} />
+                        <AvatarFallback className="bg-muted text-foreground">
+                          {firstStory.profiles.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-foreground max-w-[80px] truncate">
+                    {firstStory.profiles.username}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
       </div>
 
       {/* Story Viewer */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
-        <DialogContent className="max-w-md h-[600px] p-0 bg-black">
+        <DialogContent className="max-w-md h-[90vh] p-0 bg-black border-0">
           {selectedStory && (
             <div className="relative h-full">
               <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-3">
-                <Avatar className="h-8 w-8 ring-2 ring-white">
+                <Avatar className="h-10 w-10 ring-2 ring-white">
                   <AvatarImage src={selectedStory.profiles.avatar_url} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-primary text-white">
                     {selectedStory.profiles.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Settings, Search, Shield } from "lucide-react";
+import { Heart, MessageCircle, Settings, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-
 import VerificationBadge from "@/components/VerificationBadge";
 
 interface Profile {
@@ -321,7 +320,7 @@ export default function Profile() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-16">
         <Navbar />
 
         <div className="container mx-auto max-w-xl px-4 py-0">
@@ -494,6 +493,7 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Modal de usuários */}
         <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -503,44 +503,49 @@ export default function Profile() {
                 {modalType === "following" && "Seguindo"}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 mt-4">
+            <div className="space-y-3 py-4">
               {usersList.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   Nenhum usuário encontrado
                 </p>
               ) : (
                 usersList.map((user) => (
-                  <div
-                    key={user.id}
+                  <div 
+                    key={user.id} 
+                    className="flex items-center gap-3 p-2 hover:bg-muted rounded-lg transition-colors cursor-pointer"
                     onClick={() => {
                       setShowUsersModal(false);
                       navigate(`/profile/${user.id}`);
                     }}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                   >
-                    <Avatar className="h-12 w-12 ring-2 ring-border">
+                    <Avatar className="h-12 w-12 ring-2 ring-border hover:ring-primary transition-all">
                       <AvatarImage src={user.avatar_url} />
-                      <AvatarFallback className="bg-primary/10">
-                        {user.username?.[0]?.toUpperCase()}
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {user.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground truncate">
-                          {user.username}
-                        </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1">
+                        <p className="font-semibold text-sm">{user.username}</p>
                         {user.verified && (
-                          <svg viewBox="0 0 22 22" className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor">
-                            <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.67-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.27 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.33c-.47 1.39-.2 2.9.8 3.92s2.52 1.27 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.33-2.19c1.4.46 2.91.2 3.92-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.5 4.88L6.41 12.5l1.41-1.41L10.75 14.07l5.42-5.42 1.41 1.41-6.83 6.82z"/>
-                          </svg>
+                          <VerificationBadge badgeType={user.badge_type} className="w-4 h-4" />
                         )}
                       </div>
                       {user.full_name && (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {user.full_name}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{user.full_name}</p>
                       )}
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowUsersModal(false);
+                        navigate(`/profile/${user.id}`);
+                      }}
+                    >
+                      Ver perfil
+                    </Button>
                   </div>
                 ))
               )}
