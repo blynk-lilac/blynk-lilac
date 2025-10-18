@@ -16,6 +16,7 @@ import Comments from "./pages/Comments";
 import CommentsVideo from "./pages/CommentsVideo";
 import EditProfile from "./pages/EditProfile";
 import AdminPanel from "./pages/AdminPanel";
+import ApiKeys from "./pages/ApiKeys";
 import Terms from "./pages/Terms";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/chat/:userId" element={<Chat />} />

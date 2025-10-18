@@ -54,6 +54,7 @@ export default function Comments() {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -137,7 +138,10 @@ export default function Comments() {
   };
 
   const handleComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && !audioUrl) {
+      toast.error("Adicione um comentário ou áudio");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -147,13 +151,15 @@ export default function Comments() {
       const { error } = await supabase.from("comments").insert({
         post_id: postId,
         user_id: user.id,
-        content: newComment,
+        content: newComment || "",
+        audio_url: audioUrl,
         parent_comment_id: replyTo,
       });
 
       if (error) throw error;
 
       setNewComment("");
+      setAudioUrl(null);
       setReplyTo(null);
       toast.success("Comentário adicionado!");
     } catch (error: any) {
@@ -224,6 +230,16 @@ export default function Comments() {
             </div>
 
             <p className="mt-1 text-sm text-foreground">{comment.content}</p>
+
+            {comment.audio_url && (
+              <div className="mt-2 flex items-center gap-2 bg-muted/50 p-2 rounded-lg">
+                <Volume2 className="h-4 w-4 text-primary" />
+                <audio controls className="flex-1 h-8">
+                  <source src={comment.audio_url} type="audio/webm" />
+                  Seu navegador não suporta áudio.
+                </audio>
+              </div>
+            )}
 
             <div className="flex gap-4 mt-2">
               <Button 
@@ -322,19 +338,37 @@ export default function Comments() {
                 </Button>
               </div>
             )}
+            {audioUrl && (
+              <div className="mb-3 flex items-center gap-2 bg-muted/50 p-2 rounded-lg">
+                <Volume2 className="h-4 w-4 text-primary" />
+                <audio controls className="flex-1 h-8">
+                  <source src={audioUrl} type="audio/webm" />
+                </audio>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAudioUrl(null)}
+                >
+                  Remover
+                </Button>
+              </div>
+            )}
             <Textarea
               placeholder="Adicione um comentário..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               className="min-h-20 bg-input border-border text-foreground resize-none"
             />
-            <Button
-              onClick={handleComment}
-              disabled={loading || !newComment.trim()}
-              className="mt-3 w-full bg-primary text-primary-foreground"
-            >
-              Comentar
-            </Button>
+            <div className="flex items-center gap-2 mt-3">
+              <AudioRecorder onAudioRecorded={setAudioUrl} />
+              <Button
+                onClick={handleComment}
+                disabled={loading || (!newComment.trim() && !audioUrl)}
+                className="flex-1 bg-primary text-primary-foreground"
+              >
+                Comentar
+              </Button>
+            </div>
           </Card>
 
           <div className="space-y-4">
