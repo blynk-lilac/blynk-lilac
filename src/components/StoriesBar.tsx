@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface Story {
   id: string;
@@ -15,6 +16,8 @@ interface Story {
   profiles: {
     username: string;
     avatar_url: string;
+    verified?: boolean;
+    badge_type?: string | null;
   };
 }
 
@@ -65,7 +68,9 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
         *,
         profiles (
           username,
-          avatar_url
+          avatar_url,
+          verified,
+          badge_type
         )
       `)
       .order("created_at", { ascending: false });
@@ -179,9 +184,14 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
                     {selectedStory.profiles.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-white text-sm font-semibold">
-                  {selectedStory.profiles.username}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white text-sm font-semibold">
+                    {selectedStory.profiles.username}
+                  </span>
+                  {selectedStory.profiles.verified && (
+                    <VerificationBadge badgeType={selectedStory.profiles.badge_type} className="w-4 h-4" />
+                  )}
+                </div>
               </div>
 
               {selectedStory.media_type === "image" ? (

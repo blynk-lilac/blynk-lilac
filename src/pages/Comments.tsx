@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ArrowLeft, Reply } from "lucide-react";
+import { Heart, ArrowLeft, Reply, Volume2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import VerificationBadge from "@/components/VerificationBadge";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AudioRecorder from "@/components/AudioRecorder";
 
 interface Comment {
   id: string;
@@ -19,6 +20,7 @@ interface Comment {
   created_at: string;
   parent_comment_id: string | null;
   user_id: string;
+  audio_url?: string;
   profiles: {
     username: string;
     full_name: string;
