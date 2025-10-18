@@ -71,7 +71,7 @@ export default function AdminPanel() {
       }
 
       // Verificar se é super admin (email específico)
-      const isSuperAdmin = user.email === 'isaacmuaco2@gmail.com' || user.email === 'isaacmuaco583@gmail.com';
+      const isSuperAdmin = user.email === 'isaacmuaco2@gmail.com' || user.email === 'isaacmuaco582@gmail.com';
       
       if (!isSuperAdmin) {
         setIsAdmin(false);
