@@ -90,25 +90,36 @@ export default function AdminPanel() {
   };
 
   const loadRequests = async () => {
-    const { data, error } = await supabase
-      .from("verification_requests")
-      .select(`
-        *,
-        profiles (
-          username,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("verification_requests")
+        .select(`
+          id,
+          user_id,
+          status,
+          created_at,
+          reason,
+          badge_type,
+          profiles!verification_requests_user_id_fkey (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error("Erro ao carregar pedidos:", error);
+        toast.error("Erro ao carregar pedidos: " + error.message);
+        return;
+      }
+
+      setRequests(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar pedidos:", error);
       toast.error("Erro ao carregar pedidos");
-      return;
     }
-
-    setRequests(data || []);
   };
 
   const loadReports = async () => {

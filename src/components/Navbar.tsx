@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, MessageSquare, User, Plus, Video, Shield, Menu, FileText, HelpCircle, Key } from "lucide-react";
+import { Home, Users, MessageSquare, User, Plus, Video, Shield, Menu, FileText, HelpCircle, Key, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -15,6 +16,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const isActive = (path: string) => location.pathname === path;
 
   useEffect(() => {
@@ -40,11 +42,11 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Header com logo e menu */}
+      {/* Header com logo, pesquisa e menu */}
       <div className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto max-w-2xl px-4">
-          <div className="flex h-14 items-center justify-between">
-            <Link to="/feed" className="flex items-center">
+          <div className="flex h-14 items-center justify-between gap-3">
+            <Link to="/feed" className="flex items-center flex-shrink-0">
               <img 
                 src={blynkLogo} 
                 alt="Blynk" 
@@ -53,9 +55,23 @@ export default function Navbar() {
               />
             </Link>
             
+            {/* Search Bar - Instagram Style */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Pesquisar..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9 bg-muted/50 border-0 focus-visible:ring-1 rounded-lg"
+                />
+              </div>
+            </div>
+            
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="flex-shrink-0">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>

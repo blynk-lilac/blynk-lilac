@@ -615,6 +615,7 @@ export type Database = {
       }
       verification_video_comments: {
         Row: {
+          audio_url: string | null
           content: string
           created_at: string | null
           id: string
@@ -622,6 +623,7 @@ export type Database = {
           video_id: string
         }
         Insert: {
+          audio_url?: string | null
           content: string
           created_at?: string | null
           id?: string
@@ -629,6 +631,7 @@ export type Database = {
           video_id: string
         }
         Update: {
+          audio_url?: string | null
           content?: string
           created_at?: string | null
           id?: string
@@ -721,10 +724,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_super_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

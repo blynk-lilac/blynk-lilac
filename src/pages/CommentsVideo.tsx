@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, Heart, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Heart, Trash2, Volume2 } from "lucide-react";
+import AudioRecorder from "@/components/AudioRecorder";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Navbar from "@/components/Navbar";
@@ -18,6 +19,7 @@ interface Comment {
   content: string;
   user_id: string;
   created_at: string;
+  audio_url?: string;
   profiles: {
     username: string;
     avatar_url: string;
@@ -33,6 +35,7 @@ export default function CommentsVideo() {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [audioUrl, setAudioUrl] = useState<string>("");
 
   useEffect(() => {
     loadCurrentUser();
@@ -85,7 +88,7 @@ export default function CommentsVideo() {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && !audioUrl) return;
 
     setLoading(true);
     try {
@@ -96,11 +99,13 @@ export default function CommentsVideo() {
         video_id: videoId,
         user_id: user.id,
         content: newComment.trim(),
+        audio_url: audioUrl || null,
       });
 
       if (error) throw error;
 
       setNewComment("");
+      setAudioUrl("");
       loadComments();
     } catch (error: any) {
       toast.error("Erro ao adicionar comentário");
@@ -144,21 +149,41 @@ export default function CommentsVideo() {
           <h1 className="text-2xl font-bold mb-4">Comentários</h1>
 
           <Card className="p-4 bg-card border border-border rounded-xl mb-4">
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Adicione um comentário..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 min-h-[60px] bg-transparent border-0 resize-none focus-visible:ring-0"
-              />
-              <Button
-                onClick={handleAddComment}
-                disabled={loading || !newComment.trim()}
-                size="sm"
-                className="self-end"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Adicione um comentário..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="flex-1 min-h-[60px] bg-transparent border-0 resize-none focus-visible:ring-0"
+                />
+                <Button
+                  onClick={handleAddComment}
+                  disabled={loading || (!newComment.trim() && !audioUrl)}
+                  size="sm"
+                  className="self-end"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2 border-t pt-3">
+                <AudioRecorder onAudioRecorded={setAudioUrl} />
+                {audioUrl && (
+                  <div className="flex items-center gap-2 flex-1 px-3 py-2 bg-muted rounded-lg">
+                    <Volume2 className="h-4 w-4 text-primary" />
+                    <audio src={audioUrl} controls className="flex-1 h-8" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAudioUrl("")}
+                      className="h-8 px-2"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
 
@@ -191,6 +216,13 @@ export default function CommentsVideo() {
                       </span>
                     </div>
                     <p className="text-sm text-foreground">{comment.content}</p>
+                    
+                    {comment.audio_url && (
+                      <div className="mt-2 flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-lg">
+                        <Volume2 className="h-4 w-4 text-primary" />
+                        <audio src={comment.audio_url} controls className="flex-1 h-8" />
+                      </div>
+                    )}
 
                     {comment.user_id === currentUserId && (
                       <Button
