@@ -49,6 +49,9 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [deviceFingerprint, setDeviceFingerprint] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -157,60 +160,142 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      toast.error("Email inválido");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar email de recuperação");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <AuthLayout>
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md p-8 bg-card border-border">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Blynk</h1>
-            <p className="text-muted-foreground">
-              {isLogin ? "Entre na sua conta" : "Crie sua conta"}
-            </p>
-          </div>
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-input border-border text-foreground"
-              />
+        {showForgotPassword ? (
+          <Card className="w-full max-w-md p-8 bg-card border-border">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Recuperar Senha</h1>
+              <p className="text-muted-foreground">
+                Digite seu email para receber o link de recuperação
+              </p>
             </div>
 
-            <div>
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-input border-border text-foreground"
-              />
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <Label htmlFor="resetEmail">Email</Label>
+                <Input
+                  id="resetEmail"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  className="bg-input border-border text-foreground"
+                  placeholder="seu@email.com"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={resetLoading}
+              >
+                {resetLoading ? "Enviando..." : "Enviar Link de Recuperação"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setShowForgotPassword(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Voltar para o login
+              </button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="w-full max-w-md p-8 bg-card border-border">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-foreground mb-2">Blynk</h1>
+              <p className="text-muted-foreground">
+                {isLogin ? "Entre na sua conta" : "Crie sua conta"}
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
-            </Button>
-          </form>
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-input border-border text-foreground"
+                />
+              </div>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
-            </button>
-          </div>
-        </Card>
+              <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-input border-border text-foreground"
+                />
+              </div>
+
+              {isLogin && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={loading}
+              >
+                {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
+              </button>
+            </div>
+          </Card>
+        )}
       </div>
     </AuthLayout>
   );

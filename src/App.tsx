@@ -18,6 +18,7 @@ import EditProfile from "./pages/EditProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ApiKeys from "./pages/ApiKeys";
 import Install from "./pages/Install";
+import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/install" element={<Install />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/chat/:userId" element={<Chat />} />
