@@ -616,6 +616,43 @@ export default function EditProfile() {
               </TabsContent>
 
               <TabsContent value="verification" className="space-y-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-card border border-border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-foreground">Selo de Verificação</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.verified ? "Seu perfil está verificado" : "Ative o selo de verificação"}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={profile.verified || false}
+                      onCheckedChange={async (checked) => {
+                        setLoading(true);
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) throw new Error("Usuário não autenticado");
+
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ verified: checked })
+                            .eq("id", user.id);
+
+                          if (error) throw error;
+
+                          setProfile({ ...profile, verified: checked });
+                          toast.success(checked ? "Selo ativado!" : "Selo desativado!");
+                        } catch (error: any) {
+                          toast.error(error.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
                 <div className="text-center space-y-6">
                   <div className="flex justify-center">
                     <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full">
