@@ -22,7 +22,6 @@ import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
-import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -32,35 +31,30 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex flex-col min-h-screen">
-          <div className="flex-1">
-            <Routes>
-              <Route path="/" element={<Auth />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/create" element={<Create />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="/videos/:shareCode" element={<Videos />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:userId" element={<Profile />} />
-              <Route path="/edit-profile" element={<EditProfile />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/api-keys" element={<ApiKeys />} />
-              <Route path="/install" element={<Install />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/friends" element={<Friends />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/chat/:userId" element={<Chat />} />
-              <Route path="/comments/:postId" element={<Comments />} />
-              <Route path="/comments-video/:videoId" element={<CommentsVideo />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/help" element={<Help />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-          <Footer />
-        </div>
+        <Routes>
+          <Route path="/" element={<Auth />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/feed" element={<Feed />} />
+          <Route path="/create" element={<Create />} />
+          <Route path="/videos" element={<Videos />} />
+          <Route path="/videos/:shareCode" element={<Videos />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/install" element={<Install />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/chat/:userId" element={<Chat />} />
+          <Route path="/comments/:postId" element={<Comments />} />
+          <Route path="/comments-video/:videoId" element={<CommentsVideo />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/help" element={<Help />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

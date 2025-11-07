@@ -70,10 +70,14 @@ export default function AdminPanel() {
         return;
       }
 
-      // Verificar se é super admin (email específico)
-      const isSuperAdmin = user.email === 'isaacmuaco2@gmail.com' || user.email === 'isaacmuaco582@gmail.com';
+      // Verificar se é super admin usando a função do banco de dados
+      const { data, error } = await supabase.rpc('is_super_admin');
       
-      if (!isSuperAdmin) {
+      if (error) {
+        console.error("Erro ao verificar admin:", error);
+        setIsAdmin(false);
+        toast.error("Erro ao verificar permissões");
+      } else if (!data) {
         setIsAdmin(false);
         toast.error("Você não tem permissão para acessar esta página");
       } else {
@@ -82,8 +86,9 @@ export default function AdminPanel() {
         loadReports();
       }
     } catch (error) {
+      console.error("Erro ao verificar admin:", error);
       setIsAdmin(false);
-      toast.error("Erro ao verificar pedidos");
+      toast.error("Erro ao verificar permissões");
     } finally {
       setLoading(false);
     }
@@ -146,7 +151,8 @@ export default function AdminPanel() {
     }
 
     try {
-      const { error } = await supabase
+      // Primeiro, atualizar o pedido de verificação
+      const { error: requestError } = await supabase
         .from("verification_requests")
         .update({ 
           status: "approved",
@@ -155,12 +161,24 @@ export default function AdminPanel() {
         })
         .eq("id", requestId);
 
-      if (error) throw error;
+      if (requestError) throw requestError;
 
-      toast.success("Pedido aprovado!");
+      // Depois, atualizar o perfil do usuário diretamente
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ 
+          verified: true,
+          badge_type: badgeType
+        })
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+
+      toast.success("Pedido aprovado! O selo foi ativado.");
       loadRequests();
     } catch (error: any) {
-      toast.error("Erro ao aprovar pedido");
+      console.error("Erro ao aprovar:", error);
+      toast.error("Erro ao aprovar pedido: " + error.message);
     }
   };
 
