@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Send, ArrowLeft } from "lucide-react";
+import VerificationBadge from "@/components/VerificationBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +19,7 @@ interface Friend {
   full_name: string;
   avatar_url: string;
   verified?: boolean;
+  badge_type?: string | null;
 }
 
 interface Message {
@@ -97,7 +99,7 @@ export default function Messages() {
 
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, username, full_name, avatar_url, verified, badge_type")
       .in("id", friendIds);
 
     setFriends(profiles || []);
@@ -163,7 +165,7 @@ export default function Messages() {
                       <div className="flex items-center gap-1">
                         <p className="font-semibold text-sm truncate">{friend.username}</p>
                         {friend.verified && (
-                          <CheckCircle2 className="h-4 w-4 text-accent" />
+                          <VerificationBadge badgeType={friend.badge_type} className="w-4 h-4" />
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
@@ -197,7 +199,7 @@ export default function Messages() {
               <div className="flex items-center gap-1">
                 <p className="font-semibold">{selectedFriend.username}</p>
                 {selectedFriend.verified && (
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
+                  <VerificationBadge badgeType={selectedFriend.badge_type} className="w-4 h-4" />
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
