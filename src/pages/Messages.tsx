@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, ArrowLeft } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,6 +39,7 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { onlineUsers } = useOnlineStatus();
 
   useEffect(() => {
     loadCurrentUser();
@@ -150,31 +152,37 @@ export default function Messages() {
           <div className="container mx-auto max-w-2xl px-4 py-4">
             <h1 className="text-2xl font-bold mb-4">Mensagens</h1>
             <div className="space-y-2">
-              {friends.map((friend) => (
-                <Card
-                  key={friend.id}
-                  onClick={() => setSelectedFriend(friend)}
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors border"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={friend.avatar_url} />
-                      <AvatarFallback>{friend.username?.[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
-                        <p className="font-semibold text-sm truncate">{friend.username}</p>
-                        {friend.verified && (
-                          <VerificationBadge badgeType={friend.badge_type} className="w-4 h-4" />
-                        )}
+              {friends.map((friend) => {
+                const isOnline = onlineUsers.has(friend.id);
+                return (
+                  <Card
+                    key={friend.id}
+                    onClick={() => setSelectedFriend(friend)}
+                    className="p-4 cursor-pointer hover:bg-muted/50 transition-colors border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={friend.avatar_url} />
+                          <AvatarFallback>{friend.username?.[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {friend.full_name}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <p className="font-semibold text-sm truncate">{friend.username}</p>
+                          {friend.verified && (
+                            <VerificationBadge badgeType={friend.badge_type} className="w-4 h-4" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {friend.full_name}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -189,12 +197,15 @@ export default function Messages() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={selectedFriend.avatar_url} />
-              <AvatarFallback>
-                {selectedFriend.username?.[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={selectedFriend.avatar_url} />
+                <AvatarFallback>
+                  {selectedFriend.username?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background ${onlineUsers.has(selectedFriend.id) ? 'bg-green-500' : 'bg-red-500'}`} />
+            </div>
             <div className="flex-1">
               <div className="flex items-center gap-1">
                 <p className="font-semibold">{selectedFriend.username}</p>
@@ -203,7 +214,7 @@ export default function Messages() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {selectedFriend.full_name}
+                {selectedFriend.full_name} • {onlineUsers.has(selectedFriend.id) ? 'Online' : 'Offline'}
               </p>
             </div>
           </div>

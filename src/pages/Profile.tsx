@@ -10,6 +10,7 @@ import { Heart, MessageCircle, Settings, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import VerificationBadge from "@/components/VerificationBadge";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface Profile {
   id: string;
@@ -35,6 +36,7 @@ export default function Profile() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const { isOnline } = useOnlineStatus(userId || undefined);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
@@ -340,6 +342,8 @@ export default function Profile() {
                   {profile.username?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+              {/* Status online/offline */}
+              <div className={`absolute bottom-4 right-0 w-5 h-5 rounded-full border-4 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
               {isBlocked && (
                 <div className="absolute -bottom-1 -right-1 bg-destructive p-1.5 rounded-full ring-4 ring-background">
                   <Shield className="w-4 h-4 text-white" />

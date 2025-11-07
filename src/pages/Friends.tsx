@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
 import VerificationBadge from "@/components/VerificationBadge";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface User {
   id: string;
@@ -34,6 +35,7 @@ export default function Friends() {
   const [sentRequests, setSentRequests] = useState<string[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
+  const { onlineUsers } = useOnlineStatus();
 
   useEffect(() => {
     const init = async () => {
@@ -222,43 +224,49 @@ export default function Friends() {
             </TabsList>
 
             <TabsContent value="all" className="space-y-4">
-              {users.map((user) => (
-                <Card key={user.id} className="p-4 bg-card border-border shadow-[var(--shadow-elegant)]">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                      <AvatarImage src={user.avatar_url} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
-                        {user.username?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">
-                          {user.full_name}
-                        </span>
-                        {user.verified && (
-                          <VerificationBadge badgeType={user.badge_type} className="w-4 h-4" />
-                        )}
+              {users.map((user) => {
+                const isOnline = onlineUsers.has(user.id);
+                return (
+                  <Card key={user.id} className="p-4 bg-card border-border shadow-[var(--shadow-elegant)]">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                          <AvatarImage src={user.avatar_url} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
+                            {user.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        @{user.username}
-                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">
+                            {user.full_name}
+                          </span>
+                          {user.verified && (
+                            <VerificationBadge badgeType={user.badge_type} className="w-4 h-4" />
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          @{user.username}
+                        </span>
+                      </div>
+                      {isFriend(user.id) ? (
+                        <Badge className="bg-secondary">Amigos</Badge>
+                      ) : hasSentRequest(user.id) ? (
+                        <Badge variant="outline">Pedido Enviado</Badge>
+                      ) : (
+                        <Button
+                          onClick={() => sendFriendRequest(user.id)}
+                          className="bg-gradient-to-r from-primary to-secondary"
+                        >
+                          Adicionar Amigo
+                        </Button>
+                      )}
                     </div>
-                    {isFriend(user.id) ? (
-                      <Badge className="bg-secondary">Amigos</Badge>
-                    ) : hasSentRequest(user.id) ? (
-                      <Badge variant="outline">Pedido Enviado</Badge>
-                    ) : (
-                      <Button
-                        onClick={() => sendFriendRequest(user.id)}
-                        className="bg-gradient-to-r from-primary to-secondary"
-                      >
-                        Adicionar Amigo
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </TabsContent>
 
             <TabsContent value="requests" className="space-y-4">

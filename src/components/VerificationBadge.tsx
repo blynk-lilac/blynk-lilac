@@ -1,7 +1,7 @@
 import badgeGold from "@/assets/badge-gold.webp";
 import badgePurple from "@/assets/badge-purple.png";
 import badgeSilver from "@/assets/badge-silver.webp";
-import badgeBlue from "@/assets/badge-verification.png";
+import badgeBlue from "@/assets/badge-blue.png";
 
 interface VerificationBadgeProps {
   badgeType?: string | null;
