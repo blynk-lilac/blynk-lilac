@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Settings, Shield } from "lucide-react";
+import { Heart, MessageCircle, Shield, Calendar, MapPin } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import VerificationBadge from "@/components/VerificationBadge";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Profile {
   id: string;
@@ -325,44 +327,85 @@ export default function Profile() {
       <div className="min-h-screen bg-background pb-16">
         <Navbar />
 
-        <div className="container mx-auto max-w-xl px-4 py-0">
-          {/* Header com ícones */}
-          <div className="flex justify-end gap-4 py-4 px-2">
-            <button className="p-2 hover:bg-muted rounded-full transition-colors">
-              <Settings className="w-5 h-5 text-foreground" />
-            </button>
+        <div className="container mx-auto max-w-2xl">
+          {/* Banner Cover - Twitter Style */}
+          <div className="relative h-48 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20">
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
           </div>
 
-          {/* Perfil Header */}
-          <div className="flex flex-col items-center text-center py-6 px-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20 mb-4">
-                <AvatarImage src={profile.avatar_url} />
-                <AvatarFallback className="text-2xl bg-muted">
-                  {profile.username?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              {/* Status online/offline */}
-              <div className={`absolute bottom-4 right-0 w-5 h-5 rounded-full border-4 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-              {isBlocked && (
-                <div className="absolute -bottom-1 -right-1 bg-destructive p-1.5 rounded-full ring-4 ring-background">
-                  <Shield className="w-4 h-4 text-white" />
-                </div>
-              )}
+          {/* Profile Info */}
+          <div className="px-4">
+            {/* Avatar - Overlapping banner */}
+            <div className="relative -mt-16 mb-4 flex justify-between items-start">
+              <div className="relative">
+                <Avatar className="h-32 w-32 border-4 border-background">
+                  <AvatarImage src={profile.avatar_url} />
+                  <AvatarFallback className="text-3xl bg-muted">
+                    {profile.username?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online/Offline indicator */}
+                <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 border-background ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+                {isBlocked && (
+                  <div className="absolute -bottom-2 -right-2 bg-destructive p-2 rounded-full ring-4 ring-background">
+                    <Shield className="w-5 h-5 text-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 mt-3">
+                {!userId || userId === currentUserId ? (
+                  <Button 
+                    onClick={() => navigate("/edit-profile")}
+                    variant="outline"
+                    size="default"
+                    className="rounded-full font-semibold"
+                  >
+                    Editar perfil
+                  </Button>
+                ) : (
+                  <>
+                    {profile.is_public && (
+                      <Button 
+                        onClick={handleFollow}
+                        variant={isFollowing ? "outline" : "default"}
+                        size="default"
+                        className="rounded-full font-semibold"
+                      >
+                        {isFollowing ? "Seguindo" : "Seguir"}
+                      </Button>
+                    )}
+                    {!isFriend && !hasSentRequest && (
+                      <Button 
+                        onClick={handleAddFriend}
+                        variant="outline"
+                        size="default"
+                        className="rounded-full font-semibold"
+                      >
+                        Adicionar
+                      </Button>
+                    )}
+                    {hasSentRequest && (
+                      <Badge variant="secondary" className="py-2 px-4 rounded-full">Pedido Enviado</Badge>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-foreground">
-                {profile.full_name || profile.username}
-              </h1>
-              {profile.verified && (
-                <VerificationBadge badgeType={profile.badge_type} />
-              )}
+            {/* Name and Username */}
+            <div className="mb-3">
+              <div className="flex items-center gap-1 mb-1">
+                <h1 className="text-xl font-bold text-foreground">
+                  {profile.full_name || profile.username}
+                </h1>
+                {profile.verified && (
+                  <VerificationBadge badgeType={profile.badge_type} className="w-5 h-5" />
+                )}
+              </div>
+              <p className="text-muted-foreground">@{profile.username}</p>
             </div>
-
-            <p className="text-sm text-muted-foreground mb-3">
-              @{profile.username}
-            </p>
 
             {isBlocked && (
               <Badge variant="destructive" className="mb-3">
@@ -371,122 +414,99 @@ export default function Profile() {
               </Badge>
             )}
 
+            {/* Bio */}
             {profile.bio && (
-              <p className="text-sm text-foreground leading-relaxed max-w-md mb-6">
+              <p className="text-foreground mb-3 leading-relaxed">
                 {profile.bio}
               </p>
             )}
 
-            {/* Stats */}
-            <div className="flex gap-8 mb-6">
-              <button 
-                onClick={() => handleOpenModal("followers")}
-                className="text-center hover:opacity-70 transition-opacity"
-              >
-                <span className="font-semibold text-foreground block">{followers}</span>
-                <span className="text-xs text-muted-foreground">seguidores</span>
-              </button>
-              <button 
-                onClick={() => handleOpenModal("following")}
-                className="text-center hover:opacity-70 transition-opacity"
-              >
-                <span className="font-semibold text-foreground block">{following}</span>
-                <span className="text-xs text-muted-foreground">seguindo</span>
-              </button>
-              <div className="text-center">
-                <span className="font-semibold text-foreground block">{postsCount}</span>
-                <span className="text-xs text-muted-foreground">publicações</span>
+            {/* Join Date */}
+            <div className="flex items-center gap-4 text-muted-foreground text-sm mb-4">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                <span>Entrou em {new Date(profile.id).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
               </div>
             </div>
 
-            {/* Botões de ação */}
-            <div className="flex gap-2 w-full max-w-sm">
-              {!userId || userId === currentUserId ? (
-                <Button 
-                  onClick={() => navigate("/edit-profile")}
-                  variant="outline"
-                  size="default"
-                  className="flex-1"
-                >
-                  Editar perfil
-                </Button>
-              ) : (
-                <>
-                  {profile.is_public && (
-                    <Button 
-                      onClick={handleFollow}
-                      variant={isFollowing ? "outline" : "default"}
-                      size="default"
-                      className="flex-1"
-                    >
-                      {isFollowing ? "Seguindo" : "Seguir"}
-                    </Button>
-                  )}
-                  {!isFriend && !hasSentRequest && (
-                    <Button 
-                      onClick={handleAddFriend}
-                      variant="outline"
-                      size="default"
-                      className="flex-1"
-                    >
-                      Adicionar
-                    </Button>
-                  )}
-                  {hasSentRequest && (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Badge variant="secondary" className="py-2 px-4">Pedido Enviado</Badge>
-                    </div>
-                  )}
-                </>
-              )}
+            {/* Following/Followers Stats */}
+            <div className="flex gap-5 mb-4">
+              <button 
+                onClick={() => handleOpenModal("following")}
+                className="hover:underline transition-all"
+              >
+                <span className="font-bold text-foreground">{following}</span>
+                <span className="text-muted-foreground ml-1">Seguindo</span>
+              </button>
+              <button 
+                onClick={() => handleOpenModal("followers")}
+                className="hover:underline transition-all"
+              >
+                <span className="font-bold text-foreground">{followers}</span>
+                <span className="text-muted-foreground ml-1">Seguidores</span>
+              </button>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="border-b border-border">
+              <div className="flex">
+                <button className="flex-1 py-4 text-center font-semibold text-foreground border-b-2 border-primary">
+                  Posts
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Separador */}
-          <div className="border-t border-border my-2" />
-
-          {/* Posts */}
-          <div className="space-y-0">
+          {/* Posts Section */}
+          <div>
             {posts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-sm">Nenhuma publicação ainda</p>
+              <div className="text-center py-16 px-4">
+                <p className="text-muted-foreground">Nenhuma publicação ainda</p>
               </div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="border-b border-border py-4 px-4 hover:bg-muted/30 transition-colors">
+                <div 
+                  key={post.id} 
+                  className="border-b border-border px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/comments/${post.id}`)}
+                >
                   <div className="flex gap-3">
-                    <Avatar className="h-9 w-9 flex-shrink-0">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage src={profile.avatar_url} />
-                      <AvatarFallback className="text-xs bg-muted">
+                      <AvatarFallback className="text-sm bg-muted">
                         {profile.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-foreground">
-                          {profile.username}
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="font-bold text-foreground text-sm">
+                          {profile.full_name || profile.username}
                         </span>
                         {profile.verified && (
                           <VerificationBadge badgeType={profile.badge_type} className="w-4 h-4" />
                         )}
-                        <span className="text-xs text-muted-foreground">
-                          · {new Date(post.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                        <span className="text-muted-foreground text-sm">
+                          @{profile.username}
+                        </span>
+                        <span className="text-muted-foreground text-sm">·</span>
+                        <span className="text-muted-foreground text-sm">
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
                         </span>
                       </div>
 
-                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap mb-3">
+                      <p className="text-foreground leading-relaxed whitespace-pre-wrap mb-3">
                         {post.content}
                       </p>
 
-                      <div className="flex gap-6">
-                        <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
+                      <div className="flex items-center gap-8 text-muted-foreground">
+                        <button className="flex items-center gap-2 hover:text-red-500 transition-colors group">
                           <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-xs">{post.likes_count || 0}</span>
+                          <span className="text-sm">{post.likes_count || 0}</span>
                         </button>
-                        <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
+                        <button className="flex items-center gap-2 hover:text-primary transition-colors group">
                           <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-xs">{post.comments_count || 0}</span>
+                          <span className="text-sm">{post.comments_count || 0}</span>
                         </button>
                       </div>
                     </div>
