@@ -23,7 +23,8 @@ import {
   HelpCircle,
   FileText,
   LogOut,
-  Shield
+  Shield,
+  BadgeCheck
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
@@ -62,7 +63,7 @@ export default function SideMenu() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const adminEmails = ["isaacmuaco2@gmail.com", "isaacmuaco582@gmail.com"];
+    const adminEmails = ["isaacmuaco582@gmail.com", "isaacmilagre9@gmail.com"];
     setIsAdmin(adminEmails.includes(user.email || ""));
   };
 
@@ -77,6 +78,7 @@ export default function SideMenu() {
     { icon: Users, label: "Amigos", path: "/friends" },
     { icon: MessageCircle, label: "Mensagens", path: "/messages" },
     { icon: Video, label: "Vídeos", path: "/videos" },
+    { icon: BadgeCheck, label: "Verificação", path: "/verification" },
   ];
 
   const secondaryItems = [

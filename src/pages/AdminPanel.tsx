@@ -70,14 +70,11 @@ export default function AdminPanel() {
         return;
       }
 
-      // Verificar se é super admin usando a função do banco de dados
-      const { data, error } = await supabase.rpc('is_super_admin');
+      // Verificar se é um dos admins autorizados
+      const adminEmails = ["isaacmuaco582@gmail.com", "isaacmilagre9@gmail.com"];
+      const isUserAdmin = adminEmails.includes(user.email || "");
       
-      if (error) {
-        console.error("Erro ao verificar admin:", error);
-        setIsAdmin(false);
-        toast.error("Erro ao verificar permissões");
-      } else if (!data) {
+      if (!isUserAdmin) {
         setIsAdmin(false);
         toast.error("Você não tem permissão para acessar esta página");
       } else {
