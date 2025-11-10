@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-
+import { UserPlus, UserCheck, Users, X, Check, Search, ArrowLeft } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
@@ -26,7 +27,8 @@ interface FriendRequest {
   sender_id: string;
   receiver_id: string;
   status: string;
-  profiles: User;
+  sender: User;
+  receiver: User;
 }
 
 export default function Friends() {
@@ -38,56 +40,52 @@ export default function Friends() {
   const { onlineUsers } = useOnlineStatus();
 
   useEffect(() => {
-    const init = async () => {
-      await loadCurrentUser();
-      loadFriendRequests();
-      loadFriends();
-    };
-    init();
+    loadCurrentUser();
+    loadUsers();
+    loadFriendRequests();
+    loadFriends();
 
-    const channel = supabase
-      .channel("friend-updates")
+    const requestsChannel = supabase
+      .channel("friend_requests_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "friend_requests" },
         () => {
           loadFriendRequests();
-          loadFriends();
         }
       )
+      .subscribe();
+
+    const friendsChannel = supabase
+      .channel("friendships_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "friendships" },
-        () => loadFriends()
+        () => {
+          loadFriends();
+        }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(requestsChannel);
+      supabase.removeChannel(friendsChannel);
     };
   }, []);
 
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setCurrentUserId(user.id);
-      loadUsers(user.id);
-    }
+    if (user) setCurrentUserId(user.id);
   };
 
-  const loadUsers = async (userId?: string) => {
-    const id = userId || currentUserId;
-    if (!id) return;
-    
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .neq("id", id);
+  const loadUsers = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    if (error) {
-      toast.error("Erro ao carregar usuários");
-      return;
-    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, verified, badge_type")
+      .neq("id", user.id);
 
     setUsers(data || []);
   };
@@ -96,29 +94,18 @@ export default function Friends() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Pedidos recebidos
-    const { data: received } = await supabase
+    const { data: requests } = await supabase
       .from("friend_requests")
-      .select("*")
+      .select(`
+        *,
+        sender:profiles!friend_requests_sender_id_fkey(id, username, full_name, avatar_url, verified, badge_type),
+        receiver:profiles!friend_requests_receiver_id_fkey(id, username, full_name, avatar_url, verified, badge_type)
+      `)
       .eq("receiver_id", user.id)
       .eq("status", "pending");
 
-    if (received) {
-      const requestsWithProfiles = await Promise.all(
-        received.map(async (req) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", req.sender_id)
-            .single();
-          
-          return { ...req, profiles: profile as User };
-        })
-      );
-      setFriendRequests(requestsWithProfiles);
-    }
+    setFriendRequests(requests || []);
 
-    // Pedidos enviados
     const { data: sent } = await supabase
       .from("friend_requests")
       .select("receiver_id")
@@ -132,16 +119,17 @@ export default function Friends() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
+    const { data: friendships } = await supabase
       .from("friendships")
       .select("*")
       .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
 
-    const friendIds = data?.map(f => 
-      f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
-    ) || [];
-    
-    setFriends(friendIds);
+    if (friendships) {
+      const friendIds = friendships.map(f =>
+        f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
+      );
+      setFriends(friendIds);
+    }
   };
 
   const sendFriendRequest = async (userId: string) => {
@@ -153,11 +141,10 @@ export default function Friends() {
 
     if (error) {
       toast.error("Erro ao enviar pedido");
-      return;
+    } else {
+      toast.success("Pedido enviado!");
+      setSentRequests([...sentRequests, userId]);
     }
-
-    toast.success("Pedido enviado!");
-    loadFriendRequests();
   };
 
   const acceptFriendRequest = async (requestId: string, senderId: string) => {
@@ -171,22 +158,20 @@ export default function Friends() {
       return;
     }
 
-    const userIds = [currentUserId, senderId].sort();
     const { error: friendshipError } = await supabase
       .from("friendships")
       .insert({
-        user_id_1: userIds[0],
-        user_id_2: userIds[1],
+        user_id_1: senderId,
+        user_id_2: currentUserId,
       });
 
     if (friendshipError) {
       toast.error("Erro ao criar amizade");
-      return;
+    } else {
+      toast.success("Pedido aceite!");
+      loadFriendRequests();
+      loadFriends();
     }
-
-    toast.success("Pedido aceito!");
-    loadFriendRequests();
-    loadFriends();
   };
 
   const rejectFriendRequest = async (requestId: string) => {
@@ -197,11 +182,10 @@ export default function Friends() {
 
     if (error) {
       toast.error("Erro ao rejeitar pedido");
-      return;
+    } else {
+      toast.success("Pedido rejeitado");
+      loadFriendRequests();
     }
-
-    toast.success("Pedido rejeitado");
-    loadFriendRequests();
   };
 
   const isFriend = (userId: string) => friends.includes(userId);
@@ -209,111 +193,236 @@ export default function Friends() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20">
         <Navbar />
-        <div className="container mx-auto max-w-4xl px-4 py-8">
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-6">
-              <TabsTrigger value="all">Todos Usuários</TabsTrigger>
-              <TabsTrigger value="requests">
-                Pedidos
-                {friendRequests.length > 0 && (
-                  <Badge className="ml-2 bg-accent">{friendRequests.length}</Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="all" className="space-y-4">
-              {users.map((user) => {
-                const isOnline = onlineUsers.has(user.id);
-                return (
-                  <Card key={user.id} className="p-4 bg-card border-border shadow-[var(--shadow-elegant)]">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                          <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
-                            {user.username?.[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {user.full_name}
-                          </span>
-                          {user.verified && (
-                            <VerificationBadge badgeType={user.badge_type} className="w-4 h-4" />
-                          )}
+        {/* Header */}
+        <div className="sticky top-14 z-40 bg-background border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.history.back()}
+              className="rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Amigos</h1>
+          </div>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Search className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="max-w-3xl mx-auto">
+          <Tabs defaultValue="suggestions" className="w-full">
+            <div className="px-4 pt-4">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/30">
+                <TabsTrigger value="suggestions" className="rounded-full">
+                  Sugestões
+                </TabsTrigger>
+                <TabsTrigger value="friends" className="rounded-full">
+                  Os teus amigos
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="suggestions" className="px-4 pb-4 space-y-6 mt-4">
+              {/* Pedidos de amizade */}
+              {friendRequests.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-bold">
+                      Pedidos de amizade ({friendRequests.length})
+                    </h2>
+                    <Button variant="link" className="text-primary">
+                      Ver tudo
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {friendRequests.map((request) => (
+                      <Card key={request.id} className="p-4 border">
+                        <div className="flex items-start gap-3">
+                          <div className="relative">
+                            <Avatar className="h-20 w-20">
+                              <AvatarImage src={request.sender.avatar_url} />
+                              <AvatarFallback className="text-xl">
+                                {request.sender.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {onlineUsers.has(request.sender.id) && (
+                              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1 mb-1">
+                              <Link
+                                to={`/profile/${request.sender.id}`}
+                                className="font-semibold hover:underline"
+                              >
+                                {request.sender.username}
+                              </Link>
+                              {request.sender.verified && (
+                                <VerificationBadge
+                                  badgeType={request.sender.badge_type}
+                                  className="w-4 h-4"
+                                />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {request.sender.full_name}
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => acceptFriendRequest(request.id, request.sender.id)}
+                                className="flex-1 rounded-lg bg-primary"
+                              >
+                                Confirmar
+                              </Button>
+                              <Button
+                                onClick={() => rejectFriendRequest(request.id)}
+                                variant="outline"
+                                className="flex-1 rounded-lg"
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          @{user.username}
-                        </span>
-                      </div>
-                      {isFriend(user.id) ? (
-                        <Badge className="bg-secondary">Amigos</Badge>
-                      ) : hasSentRequest(user.id) ? (
-                        <Badge variant="outline">Pedido Enviado</Badge>
-                      ) : (
-                        <Button
-                          onClick={() => sendFriendRequest(user.id)}
-                          className="bg-gradient-to-r from-primary to-secondary"
-                        >
-                          Adicionar Amigo
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pessoas que talvez conheças */}
+              <div>
+                <h2 className="text-lg font-bold mb-3">Pessoas que talvez conheças</h2>
+                <div className="space-y-3">
+                  {users
+                    .filter(user => !isFriend(user.id))
+                    .map((user) => {
+                      const isOnline = onlineUsers.has(user.id);
+                      const requestSent = hasSentRequest(user.id);
+
+                      return (
+                        <Card key={user.id} className="p-4 border">
+                          <div className="flex items-start gap-3">
+                            <div className="relative">
+                              <Avatar className="h-20 w-20">
+                                <AvatarImage src={user.avatar_url} />
+                                <AvatarFallback className="text-xl">
+                                  {user.username?.[0]?.toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {isOnline && (
+                                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1 mb-1">
+                                <Link
+                                  to={`/profile/${user.id}`}
+                                  className="font-semibold hover:underline"
+                                >
+                                  {user.username}
+                                </Link>
+                                {user.verified && (
+                                  <VerificationBadge
+                                    badgeType={user.badge_type}
+                                    className="w-4 h-4"
+                                  />
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {user.full_name}
+                              </p>
+                              <div className="flex gap-2">
+                                {requestSent ? (
+                                  <Button
+                                    disabled
+                                    variant="outline"
+                                    className="flex-1 rounded-lg"
+                                  >
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Pedido enviado
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => sendFriendRequest(user.id)}
+                                    className="flex-1 rounded-lg bg-primary"
+                                  >
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Adicionar a
+                                  </Button>
+                                )}
+                                <Button variant="outline" className="flex-1 rounded-lg">
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                </div>
+              </div>
             </TabsContent>
 
-            <TabsContent value="requests" className="space-y-4">
-              {friendRequests.length === 0 ? (
-                <Card className="p-8 bg-card border-border text-center">
-                  <p className="text-muted-foreground">Nenhum pedido de amizade</p>
-                </Card>
+            <TabsContent value="friends" className="px-4 pb-4 mt-4">
+              {friends.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Ainda não tens amigos</p>
+                </div>
               ) : (
-                friendRequests.map((request) => (
-                  <Card key={request.id} className="p-4 bg-card border-border shadow-[var(--shadow-elegant)]">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                        <AvatarImage src={request.profiles.avatar_url} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
-                          {request.profiles.username?.[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {request.profiles.full_name}
-                          </span>
-                          {request.profiles.verified && (
-                            <VerificationBadge badgeType={request.profiles.badge_type} className="w-4 h-4" />
-                          )}
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          @{request.profiles.username}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => acceptFriendRequest(request.id, request.sender_id)}
-                          className="bg-gradient-to-r from-primary to-secondary"
-                        >
-                          Aceitar
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={() => rejectFriendRequest(request.id)}
-                        >
-                          Rejeitar
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))
+                <div className="space-y-3">
+                  {users
+                    .filter(user => isFriend(user.id))
+                    .map((user) => {
+                      const isOnline = onlineUsers.has(user.id);
+                      return (
+                        <Card key={user.id} className="p-4 border">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-16 w-16">
+                                <AvatarImage src={user.avatar_url} />
+                                <AvatarFallback className="text-lg">
+                                  {user.username?.[0]?.toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {isOnline && (
+                                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  to={`/profile/${user.id}`}
+                                  className="font-semibold hover:underline"
+                                >
+                                  {user.username}
+                                </Link>
+                                {user.verified && (
+                                  <VerificationBadge
+                                    badgeType={user.badge_type}
+                                    className="w-4 h-4"
+                                  />
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {user.full_name}
+                              </p>
+                            </div>
+                            <Button variant="outline" size="icon" className="rounded-full">
+                              <UserCheck className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                </div>
               )}
             </TabsContent>
           </Tabs>

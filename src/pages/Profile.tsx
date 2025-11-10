@@ -1,18 +1,35 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Shield, Calendar, MapPin } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { 
+  Camera, 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  MoreHorizontal,
+  Settings,
+  UserPlus,
+  UserCheck,
+  Bell,
+  BellOff,
+  Briefcase,
+  Star,
+  Users,
+  ArrowLeft,
+  Search
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import VerificationBadge from "@/components/VerificationBadge";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import PostMenu from "@/components/PostMenu";
 
 interface Profile {
   id: string;
@@ -21,7 +38,6 @@ interface Profile {
   avatar_url: string;
   bio: string;
   verified?: boolean;
-  is_public?: boolean;
   badge_type?: string | null;
   banner_url?: string;
 }
@@ -30,29 +46,30 @@ interface Post {
   id: string;
   content: string;
   created_at: string;
-  user_id: string;
-  likes_count?: number;
-  comments_count?: number;
+  image_url?: string;
+  video_url?: string;
+  audio_url?: string;
+  likes_count: number;
+  comments_count: number;
+  user_liked: boolean;
 }
 
 export default function Profile() {
-  const { userId } = useParams();
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const { isOnline } = useOnlineStatus(userId || undefined);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [followers, setFollowers] = useState(0);
-  const [following, setFollowing] = useState(0);
-  const [friends, setFriends] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
-  const [hasSentRequest, setHasSentRequest] = useState(false);
-  const [showUsersModal, setShowUsersModal] = useState(false);
-  const [modalType, setModalType] = useState<"friends" | "followers" | "following">("friends");
-  const [usersList, setUsersList] = useState<Profile[]>([]);
+  const [isFollowingCurrentUser, setIsFollowingCurrentUser] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [postsCount, setPostsCount] = useState(0);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"followers" | "following" | "friends">("followers");
+  const [modalUsers, setModalUsers] = useState<Profile[]>([]);
 
   useEffect(() => {
     loadProfile();
@@ -63,8 +80,8 @@ export default function Profile() {
     if (!user) return;
 
     setCurrentUserId(user.id);
-
     const profileId = userId || user.id;
+    setIsOwnProfile(profileId === user.id);
 
     const { data: profileData } = await supabase
       .from("profiles")
@@ -74,10 +91,8 @@ export default function Profile() {
 
     if (profileData) {
       setProfile(profileData);
-      loadStats(profileData.id);
-      loadFriends(profileData.id);
-      loadPosts(profileData.id);
-      checkBlockedStatus(profileData.id);
+      loadStats(profileId);
+      loadPosts(profileId);
       
       if (profileId !== user.id) {
         checkFollowing(user.id, profileId);
@@ -86,227 +101,177 @@ export default function Profile() {
     }
   };
 
-  const loadStats = async (userId: string) => {
+  const loadStats = async (profileId: string) => {
     const { count: followersCount } = await supabase
       .from("followers")
       .select("*", { count: "exact", head: true })
-      .eq("following_id", userId);
+      .eq("following_id", profileId);
 
     const { count: followingCount } = await supabase
       .from("followers")
       .select("*", { count: "exact", head: true })
-      .eq("follower_id", userId);
+      .eq("follower_id", profileId);
 
-    setFollowers(followersCount || 0);
-    setFollowing(followingCount || 0);
-  };
-
-  const loadFriends = async (userId: string) => {
-    const { count } = await supabase
+    const { count: friendsCount } = await supabase
       .from("friendships")
       .select("*", { count: "exact", head: true })
-      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`);
+      .or(`user_id_1.eq.${profileId},user_id_2.eq.${profileId}`);
 
-    setFriends(count || 0);
+    setFollowersCount(followersCount || 0);
+    setFollowingCount(followingCount || 0);
+    setFriendsCount(friendsCount || 0);
   };
 
-  const loadPosts = async (userId: string) => {
-    const { data: postsData, count } = await supabase
+  const checkFollowing = async (currentUserId: string, profileId: string) => {
+    const { data } = await supabase
+      .from("followers")
+      .select("*")
+      .eq("follower_id", currentUserId)
+      .eq("following_id", profileId)
+      .maybeSingle();
+
+    setIsFollowing(!!data);
+
+    const { data: followingMe } = await supabase
+      .from("followers")
+      .select("*")
+      .eq("follower_id", profileId)
+      .eq("following_id", currentUserId)
+      .maybeSingle();
+
+    setIsFollowingCurrentUser(!!followingMe);
+  };
+
+  const checkFriendStatus = async (currentUserId: string, profileId: string) => {
+    const { data } = await supabase
+      .from("friendships")
+      .select("*")
+      .or(`and(user_id_1.eq.${currentUserId},user_id_2.eq.${profileId}),and(user_id_1.eq.${profileId},user_id_2.eq.${currentUserId})`)
+      .maybeSingle();
+
+    setIsFriend(!!data);
+  };
+
+  const loadPosts = async (profileId: string) => {
+    const { data } = await supabase
       .from("posts")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
+      .select(`
+        *,
+        profiles (username, avatar_url, verified, badge_type),
+        likes:likes(count),
+        comments:comments(count)
+      `)
+      .eq("user_id", profileId)
+      .order("created_at", { ascending: false });
 
-    if (postsData) {
-      const postsWithCounts = await Promise.all(
-        postsData.map(async (post) => {
-          const { count: likesCount } = await supabase
-            .from("post_likes")
-            .select("*", { count: "exact", head: true })
-            .eq("post_id", post.id);
-
-          const { count: commentsCount } = await supabase
-            .from("comments")
-            .select("*", { count: "exact", head: true })
-            .eq("post_id", post.id);
+    if (data) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const postsWithLikes = await Promise.all(
+        data.map(async (post) => {
+          const { data: userLike } = await supabase
+            .from("likes")
+            .select("*")
+            .eq("post_id", post.id)
+            .eq("user_id", user?.id)
+            .maybeSingle();
 
           return {
             ...post,
-            likes_count: likesCount || 0,
-            comments_count: commentsCount || 0,
+            likes_count: post.likes[0]?.count || 0,
+            comments_count: post.comments[0]?.count || 0,
+            user_liked: !!userLike,
           };
         })
       );
 
-      setPosts(postsWithCounts);
+      setPosts(postsWithLikes);
     }
-    setPostsCount(count || 0);
-  };
-
-  const checkFollowing = async (followerId: string, followingId: string) => {
-    const { data } = await supabase
-      .from("followers")
-      .select("*")
-      .eq("follower_id", followerId)
-      .eq("following_id", followingId)
-      .maybeSingle();
-
-    setIsFollowing(!!data);
-  };
-
-  const checkFriendStatus = async (userId: string, otherUserId: string) => {
-    const { data: friendship } = await supabase
-      .from("friendships")
-      .select("*")
-      .or(`and(user_id_1.eq.${userId},user_id_2.eq.${otherUserId}),and(user_id_1.eq.${otherUserId},user_id_2.eq.${userId})`)
-      .maybeSingle();
-
-    setIsFriend(!!friendship);
-
-    if (!friendship) {
-      const { data: request } = await supabase
-        .from("friend_requests")
-        .select("*")
-        .eq("sender_id", userId)
-        .eq("receiver_id", otherUserId)
-        .eq("status", "pending")
-        .maybeSingle();
-
-      setHasSentRequest(!!request);
-    }
-  };
-
-  const checkBlockedStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from("blocked_accounts")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    setIsBlocked(!!data);
   };
 
   const handleFollow = async () => {
-    if (!profile || !currentUserId) return;
+    if (!profile) return;
 
-    try {
-      if (isFollowing) {
-        await supabase
-          .from("followers")
-          .delete()
-          .eq("follower_id", currentUserId)
-          .eq("following_id", profile.id);
-        
-        toast.success("Deixou de seguir");
-        setIsFollowing(false);
-        setFollowers(followers - 1);
-      } else {
-        await supabase
-          .from("followers")
-          .insert({
-            follower_id: currentUserId,
-            following_id: profile.id,
-          });
-        
-        toast.success("Seguindo");
-        setIsFollowing(true);
-        setFollowers(followers + 1);
-      }
-    } catch (error: any) {
-      toast.error(error.message);
+    if (isFollowing) {
+      await supabase
+        .from("followers")
+        .delete()
+        .eq("follower_id", currentUserId)
+        .eq("following_id", profile.id);
+      setIsFollowing(false);
+      setFollowersCount(prev => prev - 1);
+    } else {
+      await supabase.from("followers").insert({
+        follower_id: currentUserId,
+        following_id: profile.id,
+      });
+      setIsFollowing(true);
+      setFollowersCount(prev => prev + 1);
     }
   };
 
-  const handleAddFriend = async () => {
-    if (!profile || !currentUserId) return;
+  const handleLike = async (postId: string) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
 
-    try {
-      await supabase.from("friend_requests").insert({
-        sender_id: currentUserId,
-        receiver_id: profile.id,
-        status: "pending",
+    if (post.user_liked) {
+      await supabase
+        .from("likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", currentUserId);
+
+      setPosts(posts.map(p =>
+        p.id === postId
+          ? { ...p, user_liked: false, likes_count: p.likes_count - 1 }
+          : p
+      ));
+    } else {
+      await supabase.from("likes").insert({
+        post_id: postId,
+        user_id: currentUserId,
       });
 
-      toast.success("Pedido de amizade enviado");
-      setHasSentRequest(true);
-    } catch (error: any) {
-      toast.error(error.message);
+      setPosts(posts.map(p =>
+        p.id === postId
+          ? { ...p, user_liked: true, likes_count: p.likes_count + 1 }
+          : p
+      ));
     }
   };
 
-  const loadFriendsList = async () => {
-    if (!profile) return;
-    
-    const { data } = await supabase
-      .from("friendships")
-      .select("user_id_1, user_id_2")
-      .or(`user_id_1.eq.${profile.id},user_id_2.eq.${profile.id}`);
-
-    if (data) {
-      const friendIds = data.map(f => 
-        f.user_id_1 === profile.id ? f.user_id_2 : f.user_id_1
-      );
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", friendIds);
-
-      setUsersList(profiles || []);
-    }
-  };
-
-  const loadFollowersList = async () => {
-    if (!profile) return;
-
-    const { data } = await supabase
-      .from("followers")
-      .select("follower_id")
-      .eq("following_id", profile.id);
-
-    if (data) {
-      const followerIds = data.map(f => f.follower_id);
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", followerIds);
-
-      setUsersList(profiles || []);
-    }
-  };
-
-  const loadFollowingList = async () => {
-    if (!profile) return;
-
-    const { data } = await supabase
-      .from("followers")
-      .select("following_id")
-      .eq("follower_id", profile.id);
-
-    if (data) {
-      const followingIds = data.map(f => f.following_id);
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", followingIds);
-
-      setUsersList(profiles || []);
-    }
-  };
-
-  const handleOpenModal = async (type: "friends" | "followers" | "following") => {
+  const handleOpenModal = async (type: "followers" | "following" | "friends") => {
     setModalType(type);
-    setShowUsersModal(true);
-    
-    if (type === "friends") {
-      await loadFriendsList();
-    } else if (type === "followers") {
-      await loadFollowersList();
+    setModalOpen(true);
+
+    if (type === "followers") {
+      const { data } = await supabase
+        .from("followers")
+        .select("profiles!followers_follower_id_fkey(*)")
+        .eq("following_id", profile?.id);
+      setModalUsers(data?.map(d => d.profiles) || []);
+    } else if (type === "following") {
+      const { data } = await supabase
+        .from("followers")
+        .select("profiles!followers_following_id_fkey(*)")
+        .eq("follower_id", profile?.id);
+      setModalUsers(data?.map(d => d.profiles) || []);
     } else {
-      await loadFollowingList();
+      const { data } = await supabase
+        .from("friendships")
+        .select("*")
+        .or(`user_id_1.eq.${profile?.id},user_id_2.eq.${profile?.id}`);
+
+      if (data) {
+        const friendIds = data.map(f =>
+          f.user_id_1 === profile?.id ? f.user_id_2 : f.user_id_1
+        );
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", friendIds);
+        setModalUsers(profiles || []);
+      }
     }
   };
 
@@ -315,8 +280,8 @@ export default function Profile() {
       <ProtectedRoute>
         <div className="min-h-screen bg-background">
           <Navbar />
-          <div className="container mx-auto max-w-xl px-4 py-8">
-            <p className="text-center text-muted-foreground">Carregando...</p>
+          <div className="flex items-center justify-center h-screen">
+            <p className="text-muted-foreground">Carregando...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -325,263 +290,331 @@ export default function Profile() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background pb-16">
+      <div className="min-h-screen bg-background pb-20">
         <Navbar />
 
-        <div className="container mx-auto max-w-2xl">
-          {/* Banner Cover - Facebook Style */}
-          <div className="relative h-64 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
-            {profile.banner_url ? (
-              <img 
-                src={profile.banner_url} 
-                alt="Banner" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
-            )}
+        {/* Header com Back e Search */}
+        <div className="sticky top-14 z-40 bg-background border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">{profile.username}</h1>
           </div>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Search className="h-5 w-5" />
+          </Button>
+        </div>
 
-          {/* Profile Info */}
-          <div className="px-4 bg-background">
-            {/* Avatar - Overlapping banner */}
-            <div className="relative -mt-20 mb-4 flex justify-between items-start">
-              <div className="relative">
-                <Avatar className="h-32 w-32 border-4 border-background">
+        <div className="max-w-3xl mx-auto">
+          {/* Banner e Avatar */}
+          <div className="relative">
+            <div className="h-48 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
+              {profile.banner_url ? (
+                <img
+                  src={profile.banner_url}
+                  alt="Banner"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10" />
+              )}
+            </div>
+
+            <div className="px-4 pb-4">
+              <div className="flex items-end justify-between -mt-16">
+                <Avatar className="h-32 w-32 border-4 border-background ring-2 ring-border">
                   <AvatarImage src={profile.avatar_url} />
-                  <AvatarFallback className="text-3xl bg-muted">
+                  <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-secondary text-white">
                     {profile.username?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {/* Online/Offline indicator */}
-                <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 border-background ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
-                {isBlocked && (
-                  <div className="absolute -bottom-2 -right-2 bg-destructive p-2 rounded-full ring-4 ring-background">
-                    <Shield className="w-5 h-5 text-white" />
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-3">
-                {!userId || userId === currentUserId ? (
-                  <Button 
+                
+                {isOwnProfile && (
+                  <Button
                     onClick={() => navigate("/edit-profile")}
                     variant="outline"
-                    size="default"
-                    className="rounded-full font-semibold"
+                    size="sm"
+                    className="rounded-full"
                   >
+                    <Settings className="h-4 w-4 mr-2" />
                     Editar perfil
                   </Button>
-                ) : (
-                  <>
-                    {profile.is_public && (
-                      <Button 
-                        onClick={handleFollow}
-                        variant={isFollowing ? "outline" : "default"}
-                        size="default"
-                        className="rounded-full font-semibold"
-                      >
-                        {isFollowing ? "Seguindo" : "Seguir"}
-                      </Button>
-                    )}
-                    {!isFriend && !hasSentRequest && (
-                      <Button 
-                        onClick={handleAddFriend}
-                        variant="outline"
-                        size="default"
-                        className="rounded-full font-semibold"
-                      >
-                        Adicionar
-                      </Button>
-                    )}
-                    {hasSentRequest && (
-                      <Badge variant="secondary" className="py-2 px-4 rounded-full">Pedido Enviado</Badge>
-                    )}
-                  </>
                 )}
               </div>
-            </div>
 
-            {/* Name and Username */}
-            <div className="mb-3">
-              <div className="flex items-center gap-1 mb-1">
-                <h1 className="text-xl font-bold text-foreground">
-                  {profile.full_name || profile.username}
-                </h1>
-                {profile.verified && (
-                  <VerificationBadge badgeType={profile.badge_type} className="w-5 h-5" />
-                )}
-              </div>
-              <p className="text-muted-foreground">@{profile.username}</p>
-            </div>
-
-            {isBlocked && (
-              <Badge variant="destructive" className="mb-3">
-                <Shield className="w-3 h-3 mr-1" />
-                Conta Bloqueada
-              </Badge>
-            )}
-
-            {/* Bio */}
-            {profile.bio && (
-              <p className="text-foreground mb-3 leading-relaxed">
-                {profile.bio}
-              </p>
-            )}
-
-            {/* Join Date */}
-            <div className="flex items-center gap-4 text-muted-foreground text-sm mb-4">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>Entrou em {new Date(profile.id).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-              </div>
-            </div>
-
-            {/* Following/Followers Stats */}
-            <div className="flex gap-5 mb-4">
-              <button 
-                onClick={() => handleOpenModal("following")}
-                className="hover:underline transition-all"
-              >
-                <span className="font-bold text-foreground">{following}</span>
-                <span className="text-muted-foreground ml-1">Seguindo</span>
-              </button>
-              <button 
-                onClick={() => handleOpenModal("followers")}
-                className="hover:underline transition-all"
-              >
-                <span className="font-bold text-foreground">{followers}</span>
-                <span className="text-muted-foreground ml-1">Seguidores</span>
-              </button>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="border-b border-border">
-              <div className="flex">
-                <button className="flex-1 py-4 text-center font-semibold text-foreground border-b-2 border-primary">
-                  Posts
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Posts Section */}
-          <div>
-            {posts.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <p className="text-muted-foreground">Nenhuma publicação ainda</p>
-              </div>
-            ) : (
-              posts.map((post) => (
-                <div 
-                  key={post.id} 
-                  className="border-b border-border px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/comments/${post.id}`)}
-                >
-                  <div className="flex gap-3">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={profile.avatar_url} />
-                      <AvatarFallback className="text-sm bg-muted">
-                        {profile.username?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="font-bold text-foreground text-sm">
-                          {profile.full_name || profile.username}
-                        </span>
-                        {profile.verified && (
-                          <VerificationBadge badgeType={profile.badge_type} className="w-4 h-4" />
-                        )}
-                        <span className="text-muted-foreground text-sm">
-                          @{profile.username}
-                        </span>
-                        <span className="text-muted-foreground text-sm">·</span>
-                        <span className="text-muted-foreground text-sm">
-                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
-                        </span>
-                      </div>
-
-                      <p className="text-foreground leading-relaxed whitespace-pre-wrap mb-3">
-                        {post.content}
-                      </p>
-
-                      <div className="flex items-center gap-8 text-muted-foreground">
-                        <button className="flex items-center gap-2 hover:text-red-500 transition-colors group">
-                          <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-sm">{post.likes_count || 0}</span>
-                        </button>
-                        <button className="flex items-center gap-2 hover:text-primary transition-colors group">
-                          <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-sm">{post.comments_count || 0}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              <div className="mt-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold">{profile.full_name || profile.username}</h2>
+                  {profile.verified && (
+                    <VerificationBadge badgeType={profile.badge_type} className="w-5 h-5" />
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Modal de usuários */}
-        <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
-          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {modalType === "friends" && "Amigos"}
-                {modalType === "followers" && "Seguidores"}
-                {modalType === "following" && "Seguindo"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-4">
-              {usersList.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum usuário encontrado
-                </p>
-              ) : (
-                usersList.map((user) => (
-                  <div 
-                    key={user.id} 
-                    className="flex items-center gap-3 p-2 hover:bg-muted rounded-lg transition-colors cursor-pointer"
-                    onClick={() => {
-                      setShowUsersModal(false);
-                      navigate(`/profile/${user.id}`);
-                    }}
+                
+                <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                  <button
+                    onClick={() => handleOpenModal("followers")}
+                    className="hover:underline font-semibold"
                   >
-                    <Avatar className="h-12 w-12 ring-2 ring-border hover:ring-primary transition-all">
-                      <AvatarImage src={user.avatar_url} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {user.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1">
-                        <p className="font-semibold text-sm">{user.username}</p>
-                        {user.verified && (
-                          <VerificationBadge badgeType={user.badge_type} className="w-4 h-4" />
-                        )}
-                      </div>
-                      {user.full_name && (
-                        <p className="text-xs text-muted-foreground">{user.full_name}</p>
-                      )}
-                    </div>
+                    <span className="text-foreground">{followersCount}</span> seguidores
+                  </button>
+                  <span>•</span>
+                  <button
+                    onClick={() => handleOpenModal("following")}
+                    className="hover:underline font-semibold"
+                  >
+                    <span className="text-foreground">{followingCount}</span> a seguir
+                  </button>
+                </div>
+
+                {profile.bio && (
+                  <p className="mt-3 text-sm">{profile.bio}</p>
+                )}
+
+                {!isOwnProfile && (
+                  <div className="flex gap-2 mt-4">
                     <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowUsersModal(false);
-                        navigate(`/profile/${user.id}`);
-                      }}
+                      onClick={handleFollow}
+                      className="flex-1 rounded-lg"
+                      variant={isFollowing ? "outline" : "default"}
                     >
-                      Ver perfil
+                      {isFollowing ? (
+                        <>
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          A seguir
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Subscrever
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" size="icon" className="rounded-lg">
+                      {isFollowing ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="outline" size="icon" className="rounded-lg">
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </div>
-                ))
-              )}
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs do Facebook */}
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
+              <TabsTrigger
+                value="posts"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                Publicações
+              </TabsTrigger>
+              <TabsTrigger
+                value="about"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                Sobre
+              </TabsTrigger>
+              <TabsTrigger
+                value="photos"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                Fotos
+              </TabsTrigger>
+              <TabsTrigger
+                value="reels"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                Reels
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="posts" className="mt-0">
+              {/* Detalhes section */}
+              <Card className="m-4 p-4 border">
+                <h3 className="font-bold text-lg mb-3">Detalhes</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Briefcase className="h-5 w-5" />
+                    <span>Página • Criador de conteúdos digitais</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Star className="h-5 w-5 text-muted-foreground" />
+                    <button className="text-primary hover:underline font-semibold">
+                      100% recomendam (1339 críticas)
+                    </button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Posts */}
+              <div className="px-4 pb-4">
+                <h3 className="font-bold text-xl mb-4">Publicações</h3>
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <Card key={post.id} className="border overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={profile.avatar_url} />
+                              <AvatarFallback>
+                                {profile.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  to={`/profile/${profile.id}`}
+                                  className="font-semibold text-sm hover:underline"
+                                >
+                                  {profile.username}
+                                </Link>
+                                {profile.verified && (
+                                  <VerificationBadge
+                                    badgeType={profile.badge_type}
+                                    className="w-4 h-4"
+                                  />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <span>
+                                  {formatDistanceToNow(new Date(post.created_at), {
+                                    addSuffix: true,
+                                    locale: ptBR,
+                                  })}
+                                </span>
+                                <span>•</span>
+                                <span>🌍</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" className="rounded-full">
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
+                        </div>
+
+                        <p className="text-sm mb-3 whitespace-pre-wrap">{post.content}</p>
+
+                        {post.image_url && (
+                          <img
+                            src={post.image_url}
+                            alt="Post"
+                            className="w-full rounded-lg"
+                          />
+                        )}
+                        {post.video_url && (
+                          <video
+                            src={post.video_url}
+                            controls
+                            className="w-full rounded-lg"
+                          />
+                        )}
+                        {post.audio_url && (
+                          <audio src={post.audio_url} controls className="w-full" />
+                        )}
+                      </div>
+
+                      <div className="px-4 py-2 border-t flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{post.likes_count} gostos</span>
+                        <span>{post.comments_count} comentários</span>
+                      </div>
+
+                      <div className="border-t px-4 py-2 flex items-center justify-around">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleLike(post.id)}
+                          className={`flex-1 gap-2 ${post.user_liked ? "text-primary" : ""}`}
+                        >
+                          <Heart
+                            className={`h-5 w-5 ${post.user_liked ? "fill-current" : ""}`}
+                          />
+                          <span className="font-semibold">Gosto</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/comments/${post.id}`)}
+                          className="flex-1 gap-2"
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                          <span className="font-semibold">Comentar</span>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="flex-1 gap-2">
+                          <Share2 className="h-5 w-5" />
+                          <span className="font-semibold">Partilhar</span>
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="about" className="p-4">
+              <Card className="p-6 border">
+                <h3 className="font-bold text-lg mb-4">Sobre</h3>
+                <p className="text-sm text-muted-foreground">
+                  {profile.bio || "Sem informações adicionais"}
+                </p>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="photos" className="p-4">
+              <p className="text-center text-muted-foreground">Nenhuma foto ainda</p>
+            </TabsContent>
+
+            <TabsContent value="reels" className="p-4">
+              <p className="text-center text-muted-foreground">Nenhum reel ainda</p>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Modal de seguidores/seguindo/amigos */}
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              {modalType === "followers" && "Seguidores"}
+              {modalType === "following" && "A seguir"}
+              {modalType === "friends" && "Amigos"}
+            </h2>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {modalUsers.map((user) => (
+                <div key={user.id} className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.avatar_url} />
+                    <AvatarFallback>
+                      {user.username?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <Link
+                        to={`/profile/${user.id}`}
+                        className="font-semibold hover:underline"
+                        onClick={() => setModalOpen(false)}
+                      >
+                        {user.username}
+                      </Link>
+                      {user.verified && (
+                        <VerificationBadge
+                          badgeType={user.badge_type}
+                          className="w-4 h-4"
+                        />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{user.full_name}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </DialogContent>
         </Dialog>
