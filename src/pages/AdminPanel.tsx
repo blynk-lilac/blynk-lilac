@@ -93,21 +93,9 @@ export default function AdminPanel() {
 
   const loadRequests = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: requests, error } = await supabase
         .from("verification_requests")
-        .select(`
-          id,
-          user_id,
-          status,
-          created_at,
-          reason,
-          badge_type,
-          profiles (
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -117,7 +105,34 @@ export default function AdminPanel() {
         return;
       }
 
-      setRequests(data || []);
+      // Buscar profiles separadamente
+      if (requests && requests.length > 0) {
+        const userIds = requests.map(r => r.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url")
+          .in("id", userIds);
+
+        if (profilesError) {
+          console.error("Erro ao carregar profiles:", profilesError);
+          toast.error("Erro ao carregar perfis");
+          return;
+        }
+
+        // Combinar requests com profiles
+        const requestsWithProfiles = requests.map(request => ({
+          ...request,
+          profiles: profiles?.find(p => p.id === request.user_id) || {
+            username: "Usuário",
+            full_name: "Usuário",
+            avatar_url: ""
+          }
+        }));
+
+        setRequests(requestsWithProfiles);
+      } else {
+        setRequests([]);
+      }
     } catch (error: any) {
       console.error("Erro ao carregar pedidos:", error);
       toast.error("Erro ao carregar pedidos");
