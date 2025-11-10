@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -192,113 +190,126 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
           {showForgotPassword ? (
-            <Card className="p-8 border">
-              <div className="text-center mb-8">
-                <div className="text-4xl font-bold mb-4">Blynk</div>
-                <h2 className="text-xl font-semibold mb-2">Recuperar Senha</h2>
-                <p className="text-sm text-muted-foreground">
+            <div className="space-y-6">
+              <div className="flex justify-center mb-8">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-4xl font-bold text-primary">B</span>
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2"
+                >
+                  <span>←</span>
+                </button>
+                <h2 className="text-xl font-semibold">Recuperar Senha</h2>
+                <p className="text-sm text-muted-foreground mt-2">
                   Digite seu email para receber o link de recuperação
                 </p>
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div>
-                  <Label htmlFor="resetEmail">Email</Label>
-                  <Input
-                    id="resetEmail"
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    required
-                    className="mt-1"
-                    placeholder="seu@email.com"
-                  />
-                </div>
+                <Input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  className="h-14 rounded-xl bg-muted/50 border-border text-base"
+                  placeholder="Email"
+                />
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-14 rounded-xl text-base font-semibold"
                   disabled={resetLoading}
+                  style={{ backgroundColor: '#1877F2' }}
                 >
                   {resetLoading ? "Enviando..." : "Enviar Link"}
                 </Button>
               </form>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Logo */}
+              <div className="flex justify-center mb-8">
+                <div className="w-24 h-24 rounded-full bg-white shadow-lg flex items-center justify-center border-4 border-primary/20">
+                  <span className="text-5xl font-bold text-primary">B</span>
+                </div>
+              </div>
 
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => setShowForgotPassword(false)}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  ← Voltar
+              {/* Language Selector */}
+              <div className="flex justify-center mb-6">
+                <button className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-1">
+                  Português (Portugal) <span className="text-xs">▼</span>
                 </button>
               </div>
-            </Card>
-          ) : (
-            <Card className="p-8 border">
-              <div className="text-center mb-8">
-                <div className="text-4xl font-bold mb-4">Blynk</div>
-                <h2 className="text-xl font-semibold mb-2">
-                  {isLogin ? "Entrar" : "Cadastrar"}
-                </h2>
-              </div>
 
-              <form onSubmit={handleAuth} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="mt-1"
-                    placeholder="seu@email.com"
-                  />
-                </div>
+              {/* Login/Signup Form */}
+              <form onSubmit={handleAuth} className="space-y-3">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-14 rounded-xl bg-muted/50 border-border text-base"
+                  placeholder="Número de telemóvel ou e-mail"
+                />
 
-                <div>
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="mt-1"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                {isLogin && (
-                  <div className="text-right">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      Esqueceu a senha?
-                    </button>
-                  </div>
-                )}
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-14 rounded-xl bg-muted/50 border-border text-base"
+                  placeholder="Palavra-passe"
+                />
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-14 rounded-xl text-base font-semibold"
                   disabled={loading}
+                  style={{ backgroundColor: '#1877F2' }}
                 >
-                  {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+                  {loading ? "Processando..." : isLogin ? "Iniciar sessão" : "Cadastrar"}
                 </Button>
               </form>
 
-              <div className="mt-4 text-center">
-                <button
+              {/* Forgot Password */}
+              {isLogin && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Esqueceste-te da palavra-passe?
+                  </button>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="my-8" />
+
+              {/* Create Account / Login Toggle */}
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="h-12 px-8 rounded-xl text-base font-semibold border-2"
+                  style={{ borderColor: '#1877F2', color: '#1877F2' }}
                 >
-                  {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
-                </button>
+                  {isLogin ? "Criar conta nova" : "Já tenho conta"}
+                </Button>
               </div>
-            </Card>
+
+              {/* Footer */}
+              <div className="text-center mt-12">
+                <span className="text-2xl font-bold text-muted-foreground">Blynk</span>
+              </div>
+            </div>
           )}
         </div>
       </div>
