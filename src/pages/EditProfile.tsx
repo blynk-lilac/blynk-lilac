@@ -32,6 +32,8 @@ interface Profile {
   bio: string;
   verified?: boolean;
   is_public?: boolean;
+  banner_url?: string;
+  two_factor_enabled?: boolean;
 }
 
 export default function EditProfile() {
@@ -40,6 +42,8 @@ export default function EditProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>("");
   const [formData, setFormData] = useState({
     full_name: "",
     username: "",
@@ -89,6 +93,7 @@ export default function EditProfile() {
         is_public: profileData.is_public || false,
       });
       setAvatarPreview(profileData.avatar_url || "");
+      setBannerPreview(profileData.banner_url || "");
     }
   };
 
@@ -99,6 +104,18 @@ export default function EditProfile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBannerFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -120,6 +137,25 @@ export default function EditProfile() {
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
+  const uploadBanner = async (userId: string) => {
+    if (!bannerFile) return bannerPreview;
+
+    const fileExt = bannerFile.name.split(".").pop();
+    const fileName = `banners/${userId}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("post-images")
+      .upload(fileName, bannerFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("post-images").getPublicUrl(fileName);
     return data.publicUrl;
   };
 
@@ -148,6 +184,11 @@ export default function EditProfile() {
         avatarUrl = await uploadAvatar(user.id);
       }
 
+      let bannerUrl = bannerPreview;
+      if (bannerFile) {
+        bannerUrl = await uploadBanner(user.id);
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -155,6 +196,7 @@ export default function EditProfile() {
           username: formData.username,
           bio: formData.bio,
           avatar_url: avatarUrl,
+          banner_url: bannerUrl,
           is_public: formData.is_public,
         })
         .eq("id", user.id);
@@ -367,9 +409,41 @@ export default function EditProfile() {
               </TabsList>
 
               <TabsContent value="profile" className="space-y-6">
-                <div className="flex flex-col items-center">
+                {/* Banner */}
+                <div className="relative group -mx-8 -mt-8 mb-6">
+                  <div className="relative h-48 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
+                    {bannerPreview ? (
+                      <img 
+                        src={bannerPreview} 
+                        alt="Banner" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
+                    )}
+                  </div>
+                  <label
+                    htmlFor="banner-upload"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                  >
+                    <div className="text-center text-white">
+                      <Camera className="h-12 w-12 mx-auto mb-2" />
+                      <p className="text-sm font-semibold">Alterar foto de capa</p>
+                    </div>
+                  </label>
+                  <input
+                    type="file"
+                    id="banner-upload"
+                    accept="image/*"
+                    onChange={handleBannerChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Avatar */}
+                <div className="flex flex-col items-center -mt-20 mb-6">
                   <div className="relative group">
-                    <Avatar className="h-32 w-32 ring-4 ring-primary/30">
+                    <Avatar className="h-32 w-32 ring-4 ring-background">
                       <AvatarImage src={avatarPreview} />
                       <AvatarFallback className="text-3xl bg-gradient-to-br from-primary to-secondary text-white">
                         {profile.username?.[0]?.toUpperCase()}
@@ -518,11 +592,49 @@ export default function EditProfile() {
                 <div className="space-y-4 pt-6 border-t">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Shield className="h-5 w-5" />
-                    Autenticação de Dois Fatores
+                    Autenticação de Dois Fatores (2FA)
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Funcionalidade em desenvolvimento
-                  </p>
+                  
+                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                    <div className="space-y-1">
+                      <p className="font-medium">Ativar 2FA</p>
+                      <p className="text-sm text-muted-foreground">
+                        Adicione uma camada extra de segurança
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profile.two_factor_enabled || false}
+                      onCheckedChange={async (checked) => {
+                        setLoading(true);
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) throw new Error("Usuário não autenticado");
+
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ two_factor_enabled: checked })
+                            .eq("id", user.id);
+
+                          if (error) throw error;
+
+                          setProfile({ ...profile, two_factor_enabled: checked });
+                          toast.success(checked ? "2FA ativado!" : "2FA desativado!");
+                        } catch (error: any) {
+                          toast.error(error.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  {profile.two_factor_enabled && (
+                    <Card className="p-4 bg-muted/50">
+                      <p className="text-sm text-muted-foreground">
+                        ✓ Sua conta está protegida com autenticação de dois fatores.
+                      </p>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
 

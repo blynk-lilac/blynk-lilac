@@ -23,6 +23,7 @@ interface Profile {
   verified?: boolean;
   is_public?: boolean;
   badge_type?: string | null;
+  banner_url?: string;
 }
 
 interface Post {
@@ -328,15 +329,23 @@ export default function Profile() {
         <Navbar />
 
         <div className="container mx-auto max-w-2xl">
-          {/* Banner Cover - Twitter Style */}
-          <div className="relative h-48 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20">
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
+          {/* Banner Cover - Facebook Style */}
+          <div className="relative h-64 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
+            {profile.banner_url ? (
+              <img 
+                src={profile.banner_url} 
+                alt="Banner" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
+            )}
           </div>
 
           {/* Profile Info */}
-          <div className="px-4">
+          <div className="px-4 bg-background">
             {/* Avatar - Overlapping banner */}
-            <div className="relative -mt-16 mb-4 flex justify-between items-start">
+            <div className="relative -mt-20 mb-4 flex justify-between items-start">
               <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-background">
                   <AvatarImage src={profile.avatar_url} />

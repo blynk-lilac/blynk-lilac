@@ -239,6 +239,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          audio_url: string | null
           content: string
           created_at: string | null
           id: string
@@ -247,6 +248,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          audio_url?: string | null
           content: string
           created_at?: string | null
           id?: string
@@ -255,6 +257,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          audio_url?: string | null
           content?: string
           created_at?: string | null
           id?: string
@@ -391,11 +394,14 @@ export type Database = {
         Row: {
           avatar_url: string | null
           badge_type: Database["public"]["Enums"]["badge_type"] | null
+          banner_url: string | null
           bio: string | null
           created_at: string | null
           full_name: string | null
           id: string
           is_public: boolean | null
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
           updated_at: string | null
           username: string
           verified: boolean | null
@@ -403,11 +409,14 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           badge_type?: Database["public"]["Enums"]["badge_type"] | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string | null
           full_name?: string | null
           id: string
           is_public?: boolean | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           username: string
           verified?: boolean | null
@@ -415,11 +424,14 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           badge_type?: Database["public"]["Enums"]["badge_type"] | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           is_public?: boolean | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           username?: string
           verified?: boolean | null

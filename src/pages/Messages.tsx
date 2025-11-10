@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, ArrowLeft } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
+import VoiceRecorder from "@/components/VoiceRecorder";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +31,7 @@ interface Message {
   content: string;
   created_at: string;
   read: boolean;
+  audio_url?: string;
 }
 
 export default function Messages() {
@@ -38,7 +40,9 @@ export default function Messages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingChannelRef = useRef<any>(null);
   const { onlineUsers } = useOnlineStatus();
 
   useEffect(() => {
@@ -50,26 +54,46 @@ export default function Messages() {
     if (selectedFriend) {
       loadMessages(selectedFriend.id);
 
-      const channel = supabase
-        .channel("messages-channel")
+      // Canal para mensagens em tempo real
+      const messagesChannel = supabase
+        .channel(`messages-${selectedFriend.id}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "messages" },
+          { event: "INSERT", schema: "public", table: "messages" },
           (payload) => {
-            if (payload.new && 
-                ((payload.new as Message).sender_id === selectedFriend.id || 
-                 (payload.new as Message).receiver_id === selectedFriend.id)) {
-              loadMessages(selectedFriend.id);
+            const newMsg = payload.new as Message;
+            if (newMsg.sender_id === selectedFriend.id || newMsg.receiver_id === selectedFriend.id) {
+              setMessages(prev => [...prev, newMsg]);
+              scrollToBottom();
             }
           }
         )
         .subscribe();
 
+      // Canal para typing indicator usando presence
+      typingChannelRef.current = supabase
+        .channel(`typing-${currentUserId}-${selectedFriend.id}`)
+        .on('presence', { event: 'sync' }, () => {
+          const state = typingChannelRef.current?.presenceState();
+          const typing = new Set<string>();
+          Object.keys(state || {}).forEach(key => {
+            const presence = state[key][0];
+            if (presence.user_id !== currentUserId && presence.typing) {
+              typing.add(presence.user_id);
+            }
+          });
+          setTypingUsers(typing);
+        })
+        .subscribe();
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messagesChannel);
+        if (typingChannelRef.current) {
+          supabase.removeChannel(typingChannelRef.current);
+        }
       };
     }
-  }, [selectedFriend]);
+  }, [selectedFriend, currentUserId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -126,13 +150,31 @@ export default function Messages() {
       .eq("sender_id", friendId);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedFriend) return;
+  const handleTyping = () => {
+    if (typingChannelRef.current) {
+      typingChannelRef.current.track({
+        user_id: currentUserId,
+        typing: true
+      });
+
+      setTimeout(() => {
+        typingChannelRef.current?.track({
+          user_id: currentUserId,
+          typing: false
+        });
+      }, 2000);
+    }
+  };
+
+  const sendMessage = async (audioUrl?: string) => {
+    if (!newMessage.trim() && !audioUrl) return;
+    if (!selectedFriend) return;
 
     const { error } = await supabase.from("messages").insert({
       sender_id: currentUserId,
       receiver_id: selectedFriend.id,
-      content: newMessage,
+      content: audioUrl ? "🎤 Mensagem de voz" : newMessage,
+      audio_url: audioUrl,
     });
 
     if (error) {
@@ -141,6 +183,13 @@ export default function Messages() {
     }
 
     setNewMessage("");
+    
+    if (typingChannelRef.current) {
+      typingChannelRef.current.track({
+        user_id: currentUserId,
+        typing: false
+      });
+    }
   };
 
   return (
@@ -213,9 +262,18 @@ export default function Messages() {
                   <VerificationBadge badgeType={selectedFriend.badge_type} className="w-4 h-4" />
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {selectedFriend.full_name} • {onlineUsers.has(selectedFriend.id) ? 'Online' : 'Offline'}
-              </p>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {selectedFriend.full_name}
+                </p>
+                {typingUsers.has(selectedFriend.id) ? (
+                  <p className="text-xs text-primary">está escrevendo...</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {onlineUsers.has(selectedFriend.id) ? 'Online' : 'Offline'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -244,7 +302,17 @@ export default function Messages() {
                           : "bg-muted text-foreground"
                       }`}
                     >
-                      <p className="text-sm break-words">{message.content}</p>
+                      {message.audio_url ? (
+                        <audio 
+                          controls 
+                          className="max-w-full"
+                          src={message.audio_url}
+                        >
+                          Seu navegador não suporta áudio.
+                        </audio>
+                      ) : (
+                        <p className="text-sm break-words">{message.content}</p>
+                      )}
                       <p className={`text-xs mt-1 ${
                         isMe ? "text-primary-foreground/70" : "text-muted-foreground"
                       }`}>
@@ -270,9 +338,13 @@ export default function Messages() {
               }}
               className="flex gap-2"
             >
+              <VoiceRecorder onAudioRecorded={(audioUrl) => sendMessage(audioUrl)} />
               <Input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
                 placeholder="Mensagem..."
                 className="flex-1 rounded-full border-border"
               />
