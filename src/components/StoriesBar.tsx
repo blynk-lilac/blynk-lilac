@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus } from "lucide-react";
+import { Plus, MoreVertical, X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import VerificationBadge from "@/components/VerificationBadge";
 
@@ -97,6 +103,23 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
     }
   };
 
+  const handleDeleteStory = async (storyId: string) => {
+    try {
+      const { error } = await supabase
+        .from("stories")
+        .delete()
+        .eq("id", storyId);
+
+      if (error) throw error;
+
+      toast.success("Story eliminado");
+      setViewerOpen(false);
+      loadStories();
+    } catch (error) {
+      toast.error("Erro ao eliminar story");
+    }
+  };
+
   const groupedStories = stories.reduce((acc, story) => {
     if (!acc[story.user_id]) {
       acc[story.user_id] = [];
@@ -172,42 +195,82 @@ export default function StoriesBar({ onCreateStory }: StoriesBarProps) {
         </div>
       </div>
 
-      {/* Story Viewer */}
+      {/* Story Viewer Fullscreen */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
-        <DialogContent className="max-w-md h-[90vh] p-0 bg-black border-0">
+        <DialogContent className="max-w-full w-full h-full p-0 bg-black border-0 m-0">
           {selectedStory && (
-            <div className="relative h-full">
-              <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-3">
-                <Avatar className="h-10 w-10 ring-2 ring-white">
-                  <AvatarImage src={selectedStory.profiles.avatar_url} />
-                  <AvatarFallback className="bg-primary text-white">
-                    {selectedStory.profiles.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white text-sm font-semibold">
-                    {selectedStory.profiles.username}
-                  </span>
-                  {selectedStory.profiles.verified && (
-                    <VerificationBadge badgeType={selectedStory.profiles.badge_type} className="w-4 h-4" />
-                  )}
+            <div className="relative w-full h-full">
+              {/* Header */}
+              <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 ring-2 ring-white">
+                      <AvatarImage src={selectedStory.profiles.avatar_url} />
+                      <AvatarFallback className="bg-primary text-white">
+                        {selectedStory.profiles.username[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white text-sm font-semibold">
+                        {selectedStory.profiles.username}
+                      </span>
+                      {selectedStory.profiles.verified && (
+                        <VerificationBadge badgeType={selectedStory.profiles.badge_type} className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {selectedStory.user_id === currentUserId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20"
+                          >
+                            <MoreVertical className="h-5 w-5 text-white" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteStory(selectedStory.id)}
+                            className="text-destructive"
+                          >
+                            Eliminar Story
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20"
+                      onClick={() => setViewerOpen(false)}
+                    >
+                      <X className="h-5 w-5 text-white" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              {selectedStory.media_type === "image" ? (
-                <img
-                  src={selectedStory.media_url}
-                  alt="Story"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <video
-                  src={selectedStory.media_url}
-                  controls
-                  autoPlay
-                  className="w-full h-full object-contain"
-                />
-              )}
+              {/* Media Content */}
+              <div className="w-full h-full flex items-center justify-center">
+                {selectedStory.media_type === "image" ? (
+                  <img
+                    src={selectedStory.media_url}
+                    alt="Story"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <video
+                    src={selectedStory.media_url}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-full object-contain"
+                  />
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

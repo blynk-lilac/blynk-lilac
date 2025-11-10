@@ -381,93 +381,96 @@ export default function EditProfile() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20">
         <Navbar />
 
-        <div className="container mx-auto max-w-2xl px-4 py-8">
+        <div className="container mx-auto max-w-3xl px-3 sm:px-4 py-4">
           <Button
             variant="ghost"
             onClick={() => navigate("/profile")}
-            className="mb-4 gap-2"
+            className="mb-3 gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
 
-          <Card className="p-8 bg-card border-border shadow-[var(--shadow-elegant)]">
-            <h1 className="text-3xl font-bold text-foreground mb-6">
-              Editar Perfil
+          <div className="space-y-3">
+            <h1 className="text-2xl font-bold text-foreground px-2">
+              Definições e Privacidade
             </h1>
 
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
-                <TabsTrigger value="profile">Perfil</TabsTrigger>
-                <TabsTrigger value="security">Segurança</TabsTrigger>
-                <TabsTrigger value="privacy">Privacidade</TabsTrigger>
-                <TabsTrigger value="verification">Verificação</TabsTrigger>
-                {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
+              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted/50 p-1 rounded-lg mb-3">
+                <TabsTrigger value="profile" className="text-xs sm:text-sm">Perfil</TabsTrigger>
+                <TabsTrigger value="security" className="text-xs sm:text-sm">Segurança</TabsTrigger>
+                <TabsTrigger value="privacy" className="text-xs sm:text-sm">Privacidade</TabsTrigger>
+                {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm col-span-2 sm:col-span-1">Admin</TabsTrigger>}
               </TabsList>
 
-              <TabsContent value="profile" className="space-y-6">
-                {/* Banner */}
-                <div className="relative group -mx-8 -mt-8 mb-6">
-                  <div className="relative h-48 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
-                    {bannerPreview ? (
-                      <img 
-                        src={bannerPreview} 
-                        alt="Banner" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
-                    )}
-                  </div>
-                  <label
-                    htmlFor="banner-upload"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
-                  >
-                    <div className="text-center text-white">
-                      <Camera className="h-12 w-12 mx-auto mb-2" />
-                      <p className="text-sm font-semibold">Alterar foto de capa</p>
-                    </div>
-                  </label>
-                  <input
-                    type="file"
-                    id="banner-upload"
-                    accept="image/*"
-                    onChange={handleBannerChange}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Avatar */}
-                <div className="flex flex-col items-center -mt-20 mb-6">
+              <TabsContent value="profile" className="space-y-4">
+                <Card className="p-0 overflow-hidden border-border bg-card">
+                  {/* Banner */}
                   <div className="relative group">
-                    <Avatar className="h-32 w-32 ring-4 ring-background">
-                      <AvatarImage src={avatarPreview} />
-                      <AvatarFallback className="text-3xl bg-gradient-to-br from-primary to-secondary text-white">
-                        {profile.username?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative h-32 sm:h-40 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 overflow-hidden">
+                      {bannerPreview ? (
+                        <img 
+                          src={bannerPreview} 
+                          alt="Banner" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05))] bg-[length:60px_60px]" />
+                      )}
+                    </div>
                     <label
-                      htmlFor="avatar-upload"
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                      htmlFor="banner-upload"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
                     >
-                      <Camera className="h-8 w-8 text-white" />
+                      <div className="text-center text-white">
+                        <Camera className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-1" />
+                        <p className="text-xs sm:text-sm font-semibold">Alterar capa</p>
+                      </div>
                     </label>
                     <input
                       type="file"
-                      id="avatar-upload"
+                      id="banner-upload"
                       accept="image/*"
-                      onChange={handleAvatarChange}
+                      onChange={handleBannerChange}
                       className="hidden"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="full_name">Nome Completo</Label>
+                  {/* Avatar */}
+                  <div className="px-4 pb-4">
+                    <div className="flex justify-between items-start -mt-16 sm:-mt-20">
+                      <div className="relative group">
+                        <Avatar className="h-24 w-24 sm:h-32 sm:w-32 ring-4 ring-background">
+                          <AvatarImage src={avatarPreview} />
+                          <AvatarFallback className="text-2xl sm:text-3xl bg-gradient-to-br from-primary to-secondary text-white">
+                            {profile.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <label
+                          htmlFor="avatar-upload"
+                          className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                        >
+                          <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                        </label>
+                        <input
+                          type="file"
+                          id="avatar-upload"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name" className="text-sm font-medium">Nome Completo</Label>
                     <Input
                       id="full_name"
                       value={formData.full_name}
@@ -475,11 +478,12 @@ export default function EditProfile() {
                         setFormData({ ...formData, full_name: e.target.value })
                       }
                       className="bg-input border-border text-foreground"
+                      placeholder="Seu nome completo"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="username">Nome de Usuário</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm font-medium">Nome de Usuário</Label>
                     <Input
                       id="username"
                       value={formData.username}
@@ -487,11 +491,12 @@ export default function EditProfile() {
                         setFormData({ ...formData, username: e.target.value })
                       }
                       className="bg-input border-border text-foreground"
+                      placeholder="@seunome"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="bio">Bio</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
                     <Textarea
                       id="bio"
                       value={formData.bio}
@@ -510,18 +515,18 @@ export default function EditProfile() {
                   >
                     Salvar Alterações
                   </Button>
-                </div>
+                </Card>
               </TabsContent>
 
-              <TabsContent value="security" className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
+              <TabsContent value="security" className="space-y-3">
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
                     Alterar Senha
                   </h3>
 
-                  <div>
-                    <Label htmlFor="newPassword">Nova Senha</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword" className="text-sm">Nova Senha</Label>
                     <Input
                       id="newPassword"
                       type="password"
@@ -533,11 +538,12 @@ export default function EditProfile() {
                         })
                       }
                       className="bg-input border-border text-foreground"
+                      placeholder="Digite a nova senha"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm">Confirmar Senha</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -549,6 +555,7 @@ export default function EditProfile() {
                         })
                       }
                       className="bg-input border-border text-foreground"
+                      placeholder="Confirme a nova senha"
                     />
                   </div>
 
@@ -559,16 +566,16 @@ export default function EditProfile() {
                   >
                     Alterar Senha
                   </Button>
-                </div>
+                </Card>
 
-                <div className="space-y-4 pt-6 border-t">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
                     Alterar Email
                   </h3>
 
-                  <div>
-                    <Label htmlFor="email">Novo Email</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm">Novo Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -577,6 +584,7 @@ export default function EditProfile() {
                         setFormData({ ...formData, email: e.target.value })
                       }
                       className="bg-input border-border text-foreground"
+                      placeholder="seu@email.com"
                     />
                   </div>
 
@@ -587,19 +595,19 @@ export default function EditProfile() {
                   >
                     Alterar Email
                   </Button>
-                </div>
+                </Card>
 
-                <div className="space-y-4 pt-6 border-t">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                     Autenticação de Dois Fatores (2FA)
                   </h3>
                   
-                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">Ativar 2FA</p>
-                      <p className="text-sm text-muted-foreground">
-                        Adicione uma camada extra de segurança
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="space-y-1 flex-1 pr-2">
+                      <p className="font-medium text-sm sm:text-base">Ativar 2FA</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        Camada extra de segurança
                       </p>
                     </div>
                     <Switch
@@ -629,27 +637,27 @@ export default function EditProfile() {
                   </div>
                   
                   {profile.two_factor_enabled && (
-                    <Card className="p-4 bg-muted/50">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                         ✓ Sua conta está protegida com autenticação de dois fatores.
                       </p>
-                    </Card>
+                    </div>
                   )}
-                </div>
+                </Card>
               </TabsContent>
 
-              <TabsContent value="privacy" className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <User className="h-5 w-5" />
+              <TabsContent value="privacy" className="space-y-3">
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
                     Configurações de Privacidade
                   </h3>
 
-                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">Perfil Público</p>
-                      <p className="text-sm text-muted-foreground">
-                        Permitir que outros usuários te sigam
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="space-y-1 flex-1 pr-2">
+                      <p className="font-medium text-sm sm:text-base">Perfil Público</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        Permitir que outros te sigam
                       </p>
                     </div>
                     <Switch
@@ -667,24 +675,24 @@ export default function EditProfile() {
                   >
                     Salvar Configurações
                   </Button>
-                </div>
+                </Card>
 
-                <div className="space-y-4 pt-6 border-t">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <LinkIcon className="h-5 w-5" />
+                <Card className="p-4 space-y-4 border-border bg-card">
+                  <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     Link do Perfil
                   </h3>
 
                   <div className="space-y-3">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                         Link do seu perfil:
                       </p>
                       <div className="flex items-center gap-2">
                         <Input
                           value={`${window.location.origin}/profile/${profile.id}`}
                           readOnly
-                          className="bg-input border-border text-foreground"
+                          className="bg-input border-border text-foreground text-xs sm:text-sm"
                         />
                         <Button
                           size="sm"
@@ -701,8 +709,8 @@ export default function EditProfile() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                         UUID do seu perfil:
                       </p>
                       <div className="flex items-center gap-2">
@@ -724,148 +732,62 @@ export default function EditProfile() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               </TabsContent>
 
-              <TabsContent value="verification" className="space-y-6">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-card border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-primary" />
-                      <div>
-                        <h3 className="font-semibold text-foreground">Selo de Verificação</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.verified ? "Seu perfil está verificado" : "Ative o selo de verificação"}
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={profile.verified || false}
-                      onCheckedChange={async (checked) => {
-                        setLoading(true);
-                        try {
-                          const { data: { user } } = await supabase.auth.getUser();
-                          if (!user) throw new Error("Usuário não autenticado");
-
-                          const { error } = await supabase
-                            .from("profiles")
-                            .update({ verified: checked })
-                            .eq("id", user.id);
-
-                          if (error) throw error;
-
-                          setProfile({ ...profile, verified: checked });
-                          toast.success(checked ? "Selo ativado!" : "Selo desativado!");
-                        } catch (error: any) {
-                          toast.error(error.message);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="text-center space-y-6">
-                  <div className="flex justify-center">
-                    <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full">
-                      <CheckCircle2 className="h-24 w-24 text-blue-500" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold">Selo de Verificação</h3>
-                    {profile.verified ? (
-                      <p className="text-muted-foreground">
-                        Sua conta já está verificada!
-                      </p>
-                    ) : (
-                      <>
-                        <p className="text-muted-foreground">
-                          Obtenha o selo de verificação azul ao lado do seu nome
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Solicite a verificação da sua conta
-                        </p>
-                      </>
-                    )}
-                  </div>
-
-                  {!profile.verified && (
-                    <>
-                      <Card className="p-6 bg-muted/50">
-                        <h4 className="font-semibold mb-4">Critérios de Verificação:</h4>
-                        <ul className="text-sm text-muted-foreground space-y-2 text-left">
-                          <li>✓ Conta ativa e autêntica</li>
-                          <li>✓ Informações de perfil completas</li>
-                          <li>✓ Comportamento genuíno na plataforma</li>
-                          <li>✓ Sem violações das diretrizes</li>
-                        </ul>
-                      </Card>
-                      <Button
-                        onClick={handleRequestVerification}
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600"
-                      >
-                        Solicitar Verificação
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </TabsContent>
-
-              {isAdmin && (
-                <TabsContent value="admin" className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
+              <TabsContent value="admin" className="space-y-3">
+                {isAdmin && (
+                  <Card className="p-4 space-y-4 border-border bg-card">
+                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                      <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                       Painel de Administração
                     </h3>
 
                     <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="targetUserId">ID do Usuário</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="targetUserId" className="text-sm">ID do Usuário</Label>
                         <Input
                           id="targetUserId"
                           value={targetUserId}
                           onChange={(e) => setTargetUserId(e.target.value)}
                           placeholder="UUID do usuário"
-                          className="bg-input border-border text-foreground"
+                          className="bg-input border-border text-foreground font-mono text-xs sm:text-sm"
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Button
                           onClick={handleToggleVerification}
                           disabled={loading || !targetUserId}
                           variant="outline"
-                          className="w-full"
+                          className="w-full text-sm"
                         >
                           <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Ativar/Desativar Verificação
+                          Verificação
                         </Button>
 
                         <Button
                           onClick={handleToggleBlockAccount}
                           disabled={loading || !targetUserId}
                           variant="destructive"
-                          className="w-full"
+                          className="w-full text-sm"
                         >
                           <Shield className="h-4 w-4 mr-2" />
-                          Bloquear/Desbloquear Conta
+                          Bloquear/Desbloquear
                         </Button>
                       </div>
                     </div>
 
-                    <Card className="p-4 bg-muted/50 mt-6">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Nota:</strong> Essas ações são permanentes e afetam a conta do usuário imediatamente.
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                        <strong>Nota:</strong> Essas ações afetam a conta imediatamente.
                       </p>
-                    </Card>
-                  </div>
-                </TabsContent>
-              )}
+                    </div>
+                  </Card>
+                )}
+              </TabsContent>
             </Tabs>
-          </Card>
+          </div>
         </div>
       </div>
     </ProtectedRoute>

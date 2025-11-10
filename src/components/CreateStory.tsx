@@ -13,33 +13,41 @@ interface CreateStoryProps {
 }
 
 export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string>("");
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [textContent, setTextContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("media");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      toast.error("Apenas fotos e vídeos são permitidos");
-      return;
-    }
+    const validFiles: File[] = [];
+    const previews: string[] = [];
 
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("Arquivo muito grande. Máximo 20MB");
-      return;
-    }
+    files.forEach(file => {
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        toast.error("Apenas fotos e vídeos são permitidos");
+        return;
+      }
 
-    setMediaFile(file);
-    setMediaPreview(URL.createObjectURL(file));
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error("Arquivo muito grande. Máximo 20MB");
+        return;
+      }
+
+      validFiles.push(file);
+      previews.push(URL.createObjectURL(file));
+    });
+
+    setMediaFiles([...mediaFiles, ...validFiles]);
+    setMediaPreviews([...mediaPreviews, ...previews]);
   };
 
   const handleCreateStory = async () => {
-    if (!mediaFile && !textContent.trim()) {
+    if (mediaFiles.length === 0 && !textContent.trim()) {
       toast.error("Adicione uma mídia ou texto");
       return;
     }
@@ -49,43 +57,52 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      let mediaUrl = null;
-      let mediaType = null;
+      // Upload de múltiplos arquivos
+      if (mediaFiles.length > 0) {
+        for (const mediaFile of mediaFiles) {
+          const fileExt = mediaFile.name.split(".").pop();
+          const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
-      if (mediaFile) {
-        const fileExt = mediaFile.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from("stories")
+            .upload(fileName, mediaFile, {
+              cacheControl: "3600",
+              upsert: false,
+            });
 
-        const { error: uploadError } = await supabase.storage
-          .from("stories")
-          .upload(fileName, mediaFile, {
-            cacheControl: "3600",
-            upsert: false,
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("stories")
+            .getPublicUrl(fileName);
+
+          const mediaType = mediaFile.type.startsWith("image/") ? "image" : "video";
+
+          const { error } = await supabase.from("stories").insert({
+            user_id: user.id,
+            media_url: publicUrl,
+            media_type: mediaType,
+            text_content: textContent.trim() || null,
           });
 
-        if (uploadError) throw uploadError;
+          if (error) throw error;
+        }
+      } else {
+        // Story apenas com texto
+        const { error } = await supabase.from("stories").insert({
+          user_id: user.id,
+          media_url: null,
+          media_type: null,
+          text_content: textContent.trim(),
+        });
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("stories")
-          .getPublicUrl(fileName);
-
-        mediaUrl = publicUrl;
-        mediaType = mediaFile.type.startsWith("image/") ? "image" : "video";
+        if (error) throw error;
       }
-
-      const { error } = await supabase.from("stories").insert({
-        user_id: user.id,
-        media_url: mediaUrl,
-        media_type: mediaType,
-        text_content: textContent.trim() || null,
-      });
-
-      if (error) throw error;
 
       toast.success("Story criado!");
       onOpenChange(false);
-      setMediaFile(null);
-      setMediaPreview("");
+      setMediaFiles([]);
+      setMediaPreviews([]);
       setTextContent("");
     } catch (error: any) {
       console.error("Story error:", error);
@@ -95,9 +112,14 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
     }
   };
 
+  const removeMedia = (index: number) => {
+    setMediaFiles(mediaFiles.filter((_, i) => i !== index));
+    setMediaPreviews(mediaPreviews.filter((_, i) => i !== index));
+  };
+
   const handleClose = () => {
-    setMediaFile(null);
-    setMediaPreview("");
+    setMediaFiles([]);
+    setMediaPreviews([]);
     setTextContent("");
     onOpenChange(false);
   };
@@ -122,32 +144,33 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
           </TabsList>
 
           <TabsContent value="media" className="space-y-4">
-            {mediaPreview ? (
-              <div className="relative">
-                {mediaFile?.type.startsWith("image/") ? (
-                  <img
-                    src={mediaPreview}
-                    alt="Preview"
-                    className="w-full h-80 object-cover rounded-lg"
-                  />
-                ) : (
-                  <video
-                    src={mediaPreview}
-                    controls
-                    className="w-full h-80 object-cover rounded-lg"
-                  />
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
-                  onClick={() => {
-                    setMediaFile(null);
-                    setMediaPreview("");
-                  }}
-                >
-                  <X className="h-4 w-4 text-white" />
-                </Button>
+            {mediaPreviews.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {mediaPreviews.map((preview, index) => (
+                  <div key={index} className="relative">
+                    {mediaFiles[index]?.type.startsWith("image/") ? (
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <video
+                        src={preview}
+                        controls
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+                      onClick={() => removeMedia(index)}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
@@ -163,7 +186,7 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Selecione uma foto ou vídeo (máx. 20MB)
+                    Selecione fotos ou vídeos (máx. 20MB cada)
                   </p>
                 </div>
               </div>
@@ -173,6 +196,7 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
               ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
+              multiple
               onChange={handleFileChange}
               className="hidden"
             />
@@ -190,7 +214,7 @@ export default function CreateStory({ open, onOpenChange }: CreateStoryProps) {
 
         <Button
           onClick={handleCreateStory}
-          disabled={loading || (!mediaFile && !textContent.trim())}
+          disabled={loading || (mediaFiles.length === 0 && !textContent.trim())}
           className="w-full bg-primary hover:bg-primary/90"
         >
           {loading ? "Criando..." : "Publicar Story"}
