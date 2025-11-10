@@ -102,7 +102,7 @@ export default function AdminPanel() {
           created_at,
           reason,
           badge_type,
-          profiles!verification_requests_user_id_fkey (
+          profiles (
             username,
             full_name,
             avatar_url
