@@ -72,29 +72,41 @@ export default function AudioRecorder({ onAudioRecorded }: AudioRecorderProps) {
         return;
       }
 
-      const fileName = `${user.id}-${Date.now()}.webm`;
-      const filePath = `audio-comments/${fileName}`;
+      // Gerar nome único para o arquivo
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(7);
+      const fileName = `${user.id}/${timestamp}-${randomStr}.webm`;
+      const filePath = `audio-messages/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      console.log("Iniciando upload do áudio...", { filePath, size: audioBlob.size });
+
+      // Upload do arquivo
+      const { error: uploadError } = await supabase.storage
         .from('post-images')
         .upload(filePath, audioBlob, {
-          contentType: 'audio/webm',
+          contentType: 'audio/webm;codecs=opus',
           cacheControl: '3600',
           upsert: false
         });
 
       if (uploadError) {
         console.error("Erro no upload:", uploadError);
-        toast.error("Erro ao fazer upload do áudio");
+        toast.error(`Erro ao fazer upload: ${uploadError.message}`);
         return;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      // Obter URL pública
+      const { data: urlData } = supabase.storage
         .from('post-images')
         .getPublicUrl(filePath);
 
-      onAudioRecorded(publicUrl);
-      toast.success("Áudio gravado com sucesso!");
+      if (!urlData?.publicUrl) {
+        throw new Error("Não foi possível obter URL do áudio");
+      }
+
+      console.log("Upload concluído com sucesso:", urlData.publicUrl);
+      onAudioRecorded(urlData.publicUrl);
+      toast.success("Áudio gravado!");
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       toast.error("Erro ao salvar áudio");

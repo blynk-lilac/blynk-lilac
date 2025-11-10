@@ -24,7 +24,8 @@ import {
   FileText,
   LogOut,
   Shield,
-  BadgeCheck
+  BadgeCheck,
+  ChevronRight
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
@@ -73,138 +74,174 @@ export default function SideMenu() {
     navigate("/auth");
   };
 
-  const menuItems = [
-    { icon: User, label: "Meu Perfil", path: "/profile" },
-    { icon: Users, label: "Amigos", path: "/friends" },
-    { icon: MessageCircle, label: "Mensagens", path: "/messages" },
-    { icon: Video, label: "Vídeos", path: "/videos" },
-    { icon: BadgeCheck, label: "Verificação", path: "/verification" },
-  ];
-
-  const secondaryItems = [
-    { icon: Users2, label: "Grupos", path: "#" },
-    { icon: Radio, label: "Vídeos em direto", path: "#" },
-    { icon: Store, label: "Marketplace", path: "#" },
-    { icon: Flag, label: "Páginas", path: "#" },
-    { icon: Bookmark, label: "Guardados", path: "#" },
-    { icon: Clock, label: "Memórias", path: "#" },
-    { icon: Gift, label: "Aniversários", path: "#" },
-    { icon: Calendar, label: "Eventos", path: "#" },
+  const menuSections = [
+    {
+      title: "Suas atalhos",
+      items: [
+        { icon: User, label: "Meu Perfil", path: "/profile", bgColor: "bg-blue-100 dark:bg-blue-900/20" },
+        { icon: Users, label: "Amigos", path: "/friends", bgColor: "bg-cyan-100 dark:bg-cyan-900/20" },
+        { icon: MessageCircle, label: "Mensagens", path: "/messages", bgColor: "bg-pink-100 dark:bg-pink-900/20" },
+        { icon: Video, label: "Vídeos", path: "/videos", bgColor: "bg-purple-100 dark:bg-purple-900/20" },
+        { icon: BadgeCheck, label: "Verificação", path: "/verification", bgColor: "bg-green-100 dark:bg-green-900/20" },
+      ]
+    },
+    {
+      title: "Comunidade",
+      items: [
+        { icon: Users2, label: "Grupos", path: "#", bgColor: "bg-blue-100 dark:bg-blue-900/20" },
+        { icon: Radio, label: "Vídeos em direto", path: "#", bgColor: "bg-red-100 dark:bg-red-900/20" },
+        { icon: Store, label: "Marketplace", path: "#", bgColor: "bg-green-100 dark:bg-green-900/20" },
+        { icon: Flag, label: "Páginas", path: "#", bgColor: "bg-orange-100 dark:bg-orange-900/20" },
+      ]
+    },
+    {
+      title: "Pessoal",
+      items: [
+        { icon: Bookmark, label: "Guardados", path: "#", bgColor: "bg-purple-100 dark:bg-purple-900/20" },
+        { icon: Clock, label: "Memórias", path: "#", bgColor: "bg-blue-100 dark:bg-blue-900/20" },
+        { icon: Gift, label: "Aniversários", path: "#", bgColor: "bg-pink-100 dark:bg-pink-900/20" },
+        { icon: Calendar, label: "Eventos", path: "#", bgColor: "bg-red-100 dark:bg-red-900/20" },
+      ]
+    }
   ];
 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:bg-muted">
+        <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full">
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-80 p-0">
+      <SheetContent side="left" className="w-full sm:max-w-md p-0 bg-background">
         <ScrollArea className="h-full">
           <div className="p-4">
-            {/* Profile Section */}
-            <Link to="/profile" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors mb-4">
-              <Avatar className="h-12 w-12">
+            {/* Header com título */}
+            <div className="mb-6 pt-4">
+              <h1 className="text-2xl font-bold text-foreground">Menu</h1>
+            </div>
+
+            {/* Profile Card - Estilo Facebook */}
+            <Link 
+              to="/profile" 
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors mb-6 group"
+            >
+              <Avatar className="h-14 w-14 ring-2 ring-border">
                 <AvatarImage src={profile?.avatar_url} />
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-bold text-lg">
                   {profile?.username?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate text-foreground">
+                <p className="font-bold text-base truncate text-foreground group-hover:text-primary transition-colors">
                   {profile?.full_name || profile?.username}
                 </p>
-                <p className="text-xs text-muted-foreground">Ver perfil</p>
+                <p className="text-sm text-muted-foreground">Ver perfil</p>
               </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </Link>
 
             <Separator className="my-4" />
 
-            {/* Main Menu Items */}
-            <div className="space-y-1 mb-4">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
-                >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium">{item.label}</span>
-                </Link>
-              ))}
-            </div>
+            {/* Menu Sections */}
+            {menuSections.map((section, idx) => (
+              <div key={idx} className="mb-6">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">
+                  {section.title}
+                </h2>
+                <div className="space-y-1">
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.path}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
+                    >
+                      <div className={`w-10 h-10 rounded-full ${item.bgColor} flex items-center justify-center`}>
+                        <item.icon className="h-5 w-5 text-foreground" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                        {item.label}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
 
             <Separator className="my-4" />
 
-            {/* Secondary Menu Items */}
-            <div className="space-y-1 mb-4">
-              {secondaryItems.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
-                >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-
-            <Separator className="my-4" />
-
-            {/* Settings & Help */}
+            {/* Configurações e Sair */}
             <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">
+                Configurações e suporte
+              </h2>
+              
               {isAdmin && (
                 <Link
                   to="/admin"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <Shield className="h-5 w-5" />
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
                   </div>
-                  <span className="text-sm font-medium">Painel Admin</span>
+                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                    Painel Admin
+                  </span>
                 </Link>
               )}
+              
               <Link
                 to="/edit-profile"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <Settings className="h-5 w-5" />
+                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-900/20 flex items-center justify-center">
+                  <Settings className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-sm font-medium">Configurações</span>
+                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  Definições e privacidade
+                </span>
               </Link>
+              
               <Link
                 to="/help"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <HelpCircle className="h-5 w-5" />
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                  <HelpCircle className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-sm font-medium">Dúvidas e Ajuda</span>
+                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  Ajuda e suporte
+                </span>
               </Link>
+              
               <Link
                 to="/terms"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <FileText className="h-5 w-5" />
+                <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-sm font-medium">Termos e Políticas</span>
+                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  Termos e políticas
+                </span>
               </Link>
+              
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-foreground"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <LogOut className="h-5 w-5" />
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
-                <span className="text-sm font-medium">Sair</span>
+                <span className="text-sm font-medium text-foreground group-hover:text-red-600 transition-colors">
+                  Terminar sessão
+                </span>
               </button>
+            </div>
+
+            <div className="py-6 px-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Privacidade · Termos · Publicidade · Opções de anúncios · Cookies · Mais © Blynk 2024
+              </p>
             </div>
           </div>
         </ScrollArea>
