@@ -157,10 +157,10 @@ export default function EditProfile() {
     if (!bannerFile) return bannerPreview;
 
     const fileExt = bannerFile.name.split(".").pop();
-    const fileName = `banners/${userId}-${Date.now()}.${fileExt}`;
+    const fileName = `${userId}/banner-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("post-images")
+      .from("avatars")
       .upload(fileName, bannerFile, {
         cacheControl: '3600',
         upsert: false
@@ -168,7 +168,7 @@ export default function EditProfile() {
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("post-images").getPublicUrl(fileName);
+    const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
     
     // Criar post temporário da foto de capa (24 horas)
     const expiresAt = new Date();
