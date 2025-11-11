@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, ArrowLeft, UserPlus } from "lucide-react";
+import { Send, ArrowLeft, UserPlus, Image as ImageIcon, Video, Paperclip } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import VoiceRecorder from "@/components/VoiceRecorder";
@@ -25,6 +25,8 @@ interface GroupMessage {
   id: string;
   content: string;
   audio_url?: string;
+  image_url?: string;
+  video_url?: string;
   sender_id: string;
   created_at: string;
   profiles: {
@@ -61,6 +63,8 @@ export default function GroupChat() {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,14 +162,21 @@ export default function GroupChat() {
     setFriends(profiles || []);
   };
 
-  const sendMessage = async (audioUrl?: string) => {
-    if (!newMessage.trim() && !audioUrl) return;
+  const sendMessage = async (audioUrl?: string, imageUrl?: string, videoUrl?: string) => {
+    if (!newMessage.trim() && !audioUrl && !imageUrl && !videoUrl) return;
+
+    let content = newMessage;
+    if (audioUrl) content = "🎤 Mensagem de voz";
+    if (imageUrl) content = content || "📷 Foto";
+    if (videoUrl) content = content || "🎥 Vídeo";
 
     const { error } = await supabase.from("group_messages").insert({
       group_id: groupId,
       sender_id: currentUserId,
-      content: audioUrl ? "🎤 Mensagem de voz" : newMessage,
+      content,
       audio_url: audioUrl,
+      image_url: imageUrl,
+      video_url: videoUrl,
     });
 
     if (error) {
@@ -174,6 +185,47 @@ export default function GroupChat() {
     }
 
     setNewMessage("");
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingMedia(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const isVideo = file.type.startsWith('video/');
+      
+      const { error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(fileName);
+
+      if (isVideo) {
+        await sendMessage(undefined, undefined, publicUrl);
+      } else {
+        await sendMessage(undefined, publicUrl, undefined);
+      }
+
+      toast.success("Mídia enviada!");
+    } catch (error: any) {
+      toast.error("Erro ao enviar mídia");
+    } finally {
+      setUploadingMedia(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const addMember = async (userId: string) => {
@@ -298,10 +350,26 @@ export default function GroupChat() {
                           : "bg-muted text-foreground"
                       }`}
                     >
+                      {message.image_url && (
+                        <img 
+                          src={message.image_url} 
+                          alt="Imagem"
+                          className="max-w-full rounded-lg mb-2 max-h-64 object-cover"
+                        />
+                      )}
+                      {message.video_url && (
+                        <video 
+                          src={message.video_url} 
+                          controls
+                          className="max-w-full rounded-lg mb-2 max-h-64"
+                        />
+                      )}
                       {message.audio_url ? (
                         <audio controls className="max-w-full" src={message.audio_url} />
                       ) : (
-                        <p className="text-sm break-words">{message.content}</p>
+                        !message.image_url && !message.video_url && (
+                          <p className="text-sm break-words">{message.content}</p>
+                        )
                       )}
                       <p
                         className={`text-xs mt-1 ${
@@ -331,14 +399,32 @@ export default function GroupChat() {
             }}
             className="flex gap-2"
           >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingMedia}
+              className="rounded-full"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
             <VoiceRecorder onAudioRecorded={(audioUrl) => sendMessage(audioUrl)} />
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Mensagem..."
               className="flex-1 rounded-full"
+              disabled={uploadingMedia}
             />
-            <Button type="submit" size="icon" className="rounded-full">
+            <Button type="submit" size="icon" className="rounded-full" disabled={uploadingMedia}>
               <Send className="h-4 w-4" />
             </Button>
           </form>

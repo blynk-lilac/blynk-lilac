@@ -303,8 +303,10 @@ export type Database = {
           created_at: string
           group_id: string
           id: string
+          image_url: string | null
           read_by: string[] | null
           sender_id: string
+          video_url: string | null
         }
         Insert: {
           audio_url?: string | null
@@ -312,8 +314,10 @@ export type Database = {
           created_at?: string
           group_id: string
           id?: string
+          image_url?: string | null
           read_by?: string[] | null
           sender_id: string
+          video_url?: string | null
         }
         Update: {
           audio_url?: string | null
@@ -321,8 +325,10 @@ export type Database = {
           created_at?: string
           group_id?: string
           id?: string
+          image_url?: string | null
           read_by?: string[] | null
           sender_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {

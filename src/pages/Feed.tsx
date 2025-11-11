@@ -157,6 +157,116 @@ export default function Feed() {
     }
   };
 
+  const renderMediaGrid = (mediaUrls: string[]) => {
+    const count = mediaUrls.length;
+
+    if (count === 1) {
+      const isVideo = mediaUrls[0].includes('.mp4') || mediaUrls[0].includes('.webm') || mediaUrls[0].includes('.mov');
+      return (
+        <div className="w-full bg-black/5">
+          {isVideo ? (
+            <video src={mediaUrls[0]} controls className="w-full max-h-[600px] object-contain" />
+          ) : (
+            <img src={mediaUrls[0]} alt="Post" className="w-full max-h-[600px] object-cover" />
+          )}
+        </div>
+      );
+    }
+
+    if (count === 2) {
+      return (
+        <div className="grid grid-cols-2 gap-0.5 bg-black/5">
+          {mediaUrls.map((url, idx) => {
+            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+            return isVideo ? (
+              <video key={idx} src={url} controls className="w-full h-[300px] object-cover" />
+            ) : (
+              <img key={idx} src={url} alt="Post" className="w-full h-[300px] object-cover" />
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (count === 3) {
+      // Layout: 1 grande à esquerda, 2 pequenas à direita
+      return (
+        <div className="grid grid-cols-2 gap-0.5 bg-black/5 h-[400px]">
+          <div className="row-span-2">
+            {mediaUrls[0].includes('.mp4') || mediaUrls[0].includes('.webm') || mediaUrls[0].includes('.mov') ? (
+              <video src={mediaUrls[0]} controls className="w-full h-full object-cover" />
+            ) : (
+              <img src={mediaUrls[0]} alt="Post" className="w-full h-full object-cover" />
+            )}
+          </div>
+          <div className="space-y-0.5">
+            {mediaUrls.slice(1).map((url, idx) => {
+              const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+              return isVideo ? (
+                <video key={idx} src={url} controls className="w-full h-[199px] object-cover" />
+              ) : (
+                <img key={idx} src={url} alt="Post" className="w-full h-[199px] object-cover" />
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (count === 4) {
+      return (
+        <div className="grid grid-cols-2 gap-0.5 bg-black/5">
+          {mediaUrls.map((url, idx) => {
+            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+            return isVideo ? (
+              <video key={idx} src={url} controls className="w-full h-[250px] object-cover" />
+            ) : (
+              <img key={idx} src={url} alt="Post" className="w-full h-[250px] object-cover" />
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (count >= 5) {
+      // Layout: 2 em cima, 3 embaixo (ou +3 embaixo com indicador)
+      return (
+        <div className="bg-black/5">
+          <div className="grid grid-cols-2 gap-0.5 mb-0.5">
+            {mediaUrls.slice(0, 2).map((url, idx) => {
+              const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+              return isVideo ? (
+                <video key={idx} src={url} controls className="w-full h-[200px] object-cover" />
+              ) : (
+                <img key={idx} src={url} alt="Post" className="w-full h-[200px] object-cover" />
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-0.5">
+            {mediaUrls.slice(2, 5).map((url, idx) => {
+              const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+              const isLast = idx === 2 && count > 5;
+              return (
+                <div key={idx} className="relative">
+                  {isVideo ? (
+                    <video src={url} controls className="w-full h-[150px] object-cover" />
+                  ) : (
+                    <img src={url} alt="Post" className="w-full h-[150px] object-cover" />
+                  )}
+                  {isLast && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="text-white text-2xl font-bold">+{count - 5}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div 
@@ -228,30 +338,9 @@ export default function Feed() {
                   )}
                 </div>
 
-                {/* Mídia */}
-                {post.media_urls && post.media_urls.length > 0 && (
-                  <div className="w-full bg-black/5">
-                    {post.media_urls.map((url, index) => {
-                      const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
-                      return isVideo ? (
-                        <video 
-                          key={index}
-                          src={url} 
-                          controls 
-                          className="w-full max-h-[600px] object-contain"
-                        />
-                      ) : (
-                        <img 
-                          key={index}
-                          src={url} 
-                          alt="Post" 
-                          className="w-full max-h-[600px] object-cover"
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
+                {/* Mídia - Grid Layout Estilo Facebook */}
+                {post.media_urls && post.media_urls.length > 0 && renderMediaGrid(post.media_urls)}
+                
                 {post.image_url && !post.media_urls && (
                   <div className="w-full bg-black/5">
                     <img 
