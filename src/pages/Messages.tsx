@@ -99,6 +99,7 @@ export default function Messages() {
     }
 
     try {
+      // Criar o grupo
       const { data: groupData, error: groupError } = await supabase
         .from("group_chats")
         .insert({
@@ -110,28 +111,35 @@ export default function Messages() {
 
       if (groupError) throw groupError;
 
-      // Adicionar criador como admin
-      await supabase.from("group_members").insert({
+      // Adicionar criador como admin primeiro
+      const { error: creatorError } = await supabase.from("group_members").insert({
         group_id: groupData.id,
         user_id: currentUserId,
         is_admin: true,
       });
 
+      if (creatorError) throw creatorError;
+
       // Adicionar membros selecionados
-      const memberInserts = Array.from(selectedMembers).map(memberId => ({
-        group_id: groupData.id,
-        user_id: memberId,
-      }));
+      if (selectedMembers.size > 0) {
+        const memberInserts = Array.from(selectedMembers).map(memberId => ({
+          group_id: groupData.id,
+          user_id: memberId,
+          is_admin: false,
+        }));
 
-      await supabase.from("group_members").insert(memberInserts);
+        const { error: membersError } = await supabase.from("group_members").insert(memberInserts);
+        if (membersError) throw membersError;
+      }
 
-      toast.success("Grupo criado!");
+      toast.success("Grupo criado com sucesso!");
       setCreateGroupOpen(false);
       setGroupName("");
       setSelectedMembers(new Set());
       loadGroups();
     } catch (error: any) {
-      toast.error("Erro ao criar grupo");
+      console.error("Erro ao criar grupo:", error);
+      toast.error(error.message || "Erro ao criar grupo");
     }
   };
 
