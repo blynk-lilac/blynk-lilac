@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import RequestVerification from "./pages/RequestVerification";
 import LiveStreaming from "./pages/LiveStreaming";
 import LiveWatch from "./pages/LiveWatch";
+import Groups from "./pages/Groups";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/groups" element={<Groups />} />
           <Route path="/chat/:userId" element={<Chat />} />
           <Route path="/group/:groupId" element={<GroupChat />} />
           <Route path="/comments/:postId" element={<Comments />} />

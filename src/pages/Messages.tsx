@@ -8,20 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, ArrowLeft, Users, Plus } from "lucide-react";
+import { Send, ArrowLeft, Users } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Friend {
@@ -58,9 +51,6 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [groupName, setGroupName] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingChannelRef = useRef<any>(null);
   const { onlineUsers } = useOnlineStatus();
@@ -90,67 +80,6 @@ export default function Messages() {
       .in("id", groupIds);
 
     setGroups(groupData || []);
-  };
-
-  const createGroup = async () => {
-    if (!groupName.trim() || selectedMembers.size === 0) {
-      toast.error("Adicione um nome e membros ao grupo");
-      return;
-    }
-
-    try {
-      // Criar o grupo
-      const { data: groupData, error: groupError } = await supabase
-        .from("group_chats")
-        .insert({
-          name: groupName,
-          created_by: currentUserId,
-        })
-        .select()
-        .single();
-
-      if (groupError) throw groupError;
-
-      // Adicionar criador como admin primeiro
-      const { error: creatorError } = await supabase.from("group_members").insert({
-        group_id: groupData.id,
-        user_id: currentUserId,
-        is_admin: true,
-      });
-
-      if (creatorError) throw creatorError;
-
-      // Adicionar membros selecionados
-      if (selectedMembers.size > 0) {
-        const memberInserts = Array.from(selectedMembers).map(memberId => ({
-          group_id: groupData.id,
-          user_id: memberId,
-          is_admin: false,
-        }));
-
-        const { error: membersError } = await supabase.from("group_members").insert(memberInserts);
-        if (membersError) throw membersError;
-      }
-
-      toast.success("Grupo criado com sucesso!");
-      setCreateGroupOpen(false);
-      setGroupName("");
-      setSelectedMembers(new Set());
-      loadGroups();
-    } catch (error: any) {
-      console.error("Erro ao criar grupo:", error);
-      toast.error(error.message || "Erro ao criar grupo");
-    }
-  };
-
-  const toggleMember = (memberId: string) => {
-    const newSet = new Set(selectedMembers);
-    if (newSet.has(memberId)) {
-      newSet.delete(memberId);
-    } else {
-      newSet.add(memberId);
-    }
-    setSelectedMembers(newSet);
   };
 
   useEffect(() => {
@@ -304,60 +233,6 @@ export default function Messages() {
           <div className="container mx-auto max-w-2xl px-4 py-4">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-2xl font-bold">Mensagens</h1>
-              <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full">
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Grupo</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Nome do grupo"
-                      value={groupName}
-                      onChange={(e) => setGroupName(e.target.value)}
-                    />
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      <p className="text-sm font-semibold">Adicionar Membros:</p>
-                      {friends.map((friend) => (
-                        <Card
-                          key={friend.id}
-                          className={`p-3 cursor-pointer ${
-                            selectedMembers.has(friend.id) ? "bg-primary/10" : ""
-                          }`}
-                          onClick={() => toggleMember(friend.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={friend.avatar_url} />
-                              <AvatarFallback>
-                                {friend.username?.[0]?.toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex items-center gap-1">
-                              <span className="font-semibold text-sm">
-                                {friend.username}
-                              </span>
-                              {friend.verified && (
-                                <VerificationBadge
-                                  badgeType={friend.badge_type}
-                                  className="w-4 h-4"
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                    <Button onClick={createGroup} className="w-full">
-                      Criar Grupo
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
 
             <Tabs defaultValue="friends" className="w-full">

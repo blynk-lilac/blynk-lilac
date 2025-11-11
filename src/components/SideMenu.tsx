@@ -88,7 +88,7 @@ export default function SideMenu() {
     {
       title: "Comunidade",
       items: [
-        { icon: Users2, label: "Grupos", path: "#", bgColor: "bg-blue-100 dark:bg-blue-900/20" },
+        { icon: Users2, label: "Grupos", path: "/groups", bgColor: "bg-blue-100 dark:bg-blue-900/20" },
         { icon: Radio, label: "Streaming Ao Vivo", path: "/live", bgColor: "bg-red-100 dark:bg-red-900/20" },
         { icon: Store, label: "Marketplace", path: "#", bgColor: "bg-green-100 dark:bg-green-900/20" },
         { icon: Flag, label: "Páginas", path: "#", bgColor: "bg-orange-100 dark:bg-orange-900/20" },
