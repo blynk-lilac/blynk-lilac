@@ -63,6 +63,16 @@ interface Post {
   user_liked: boolean;
 }
 
+interface Video {
+  id: string;
+  video_url: string;
+  caption: string | null;
+  created_at: string;
+  likes_count: number;
+  comments_count: number;
+  user_liked: boolean;
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const { userId } = useParams();
@@ -76,6 +86,7 @@ export default function Profile() {
   const [isFriend, setIsFriend] = useState(false);
   const [isFollowingCurrentUser, setIsFollowingCurrentUser] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"followers" | "following" | "friends">("followers");
   const [modalUsers, setModalUsers] = useState<Profile[]>([]);
@@ -103,6 +114,7 @@ export default function Profile() {
       setProfile(profileData);
       loadStats(profileId);
       loadPosts(profileId);
+      loadVideos(profileId);
       loadFriends(profileId);
       
       if (profileId !== user.id) {
@@ -190,10 +202,11 @@ export default function Profile() {
       .select(`
         *,
         profiles (username, avatar_url, verified, badge_type),
-        likes:likes(count),
+        likes:post_likes(count),
         comments:comments(count)
       `)
       .eq("user_id", profileId)
+      .is("expires_at", null)
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -202,7 +215,7 @@ export default function Profile() {
       const postsWithLikes = await Promise.all(
         data.map(async (post) => {
           const { data: userLike } = await supabase
-            .from("likes")
+            .from("post_likes")
             .select("*")
             .eq("post_id", post.id)
             .eq("user_id", user?.id)
@@ -218,6 +231,42 @@ export default function Profile() {
       );
 
       setPosts(postsWithLikes);
+    }
+  };
+
+  const loadVideos = async (profileId: string) => {
+    const { data } = await supabase
+      .from("verification_videos")
+      .select(`
+        *,
+        likes:verification_video_likes(count),
+        comments:verification_video_comments(count)
+      `)
+      .eq("user_id", profileId)
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const videosWithLikes = await Promise.all(
+        data.map(async (video) => {
+          const { data: userLike } = await supabase
+            .from("verification_video_likes")
+            .select("*")
+            .eq("video_id", video.id)
+            .eq("user_id", user?.id)
+            .maybeSingle();
+
+          return {
+            ...video,
+            likes_count: video.likes[0]?.count || 0,
+            comments_count: video.comments[0]?.count || 0,
+            user_liked: !!userLike,
+          };
+        })
+      );
+
+      setVideos(videosWithLikes);
     }
   };
 
@@ -248,7 +297,7 @@ export default function Profile() {
 
     if (post.user_liked) {
       await supabase
-        .from("likes")
+        .from("post_likes")
         .delete()
         .eq("post_id", postId)
         .eq("user_id", currentUserId);
@@ -259,7 +308,7 @@ export default function Profile() {
           : p
       ));
     } else {
-      await supabase.from("likes").insert({
+      await supabase.from("post_likes").insert({
         post_id: postId,
         user_id: currentUserId,
       });
@@ -675,8 +724,45 @@ export default function Profile() {
               </div>
             </TabsContent>
 
-            <TabsContent value="reels" className="p-4">
-              <p className="text-center text-muted-foreground">Nenhum reel ainda</p>
+            <TabsContent value="reels" className="mt-0">
+              {videos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-1 p-1">
+                  {videos.map((video) => (
+                    <div 
+                      key={video.id} 
+                      className="aspect-[9/16] overflow-hidden bg-black relative cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => navigate("/videos")}
+                    >
+                      <video 
+                        src={video.video_url}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                      <div className="absolute bottom-2 left-2 right-2">
+                        {video.caption && (
+                          <p className="text-white text-xs line-clamp-2 drop-shadow-lg">
+                            {video.caption}
+                          </p>
+                        )}
+                      </div>
+                      <div className="absolute top-2 left-2 flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-white text-xs bg-black/50 px-2 py-1 rounded">
+                          <Heart className="h-3 w-3" />
+                          <span>{video.likes_count}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-white text-xs bg-black/50 px-2 py-1 rounded">
+                          <MessageCircle className="h-3 w-3" />
+                          <span>{video.comments_count}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Nenhum vídeo ainda</p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
