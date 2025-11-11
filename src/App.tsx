@@ -25,6 +25,8 @@ import Terms from "./pages/Terms";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import RequestVerification from "./pages/RequestVerification";
+import LiveStreaming from "./pages/LiveStreaming";
+import LiveWatch from "./pages/LiveWatch";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +87,8 @@ const App = () => {
           <Route path="/comments/:postId" element={<Comments />} />
           <Route path="/comments-video/:videoId" element={<CommentsVideo />} />
           <Route path="/verification" element={<RequestVerification />} />
+          <Route path="/live" element={<LiveStreaming />} />
+          <Route path="/live-watch/:streamId" element={<LiveWatch />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/help" element={<Help />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

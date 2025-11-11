@@ -340,6 +340,36 @@ export type Database = {
           },
         ]
       }
+      live_streams: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+          user_id: string
+          viewer_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+          user_id: string
+          viewer_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          user_id?: string
+          viewer_count?: number | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           audio_url: string | null
@@ -643,6 +673,35 @@ export type Database = {
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stream_viewers: {
+        Row: {
+          id: string
+          joined_at: string | null
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_viewers_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
             referencedColumns: ["id"]
           },
         ]

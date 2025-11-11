@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageSquare, Share2, MoreHorizontal, Globe } from "lucide-react";
+import { Heart, MessageSquare, Share2, MoreHorizontal, Globe, Users, Radio } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -15,6 +15,22 @@ import { ptBR } from "date-fns/locale";
 import VerificationBadge from "@/components/VerificationBadge";
 import PostMenu from "@/components/PostMenu";
 import { Separator } from "@/components/ui/separator";
+
+interface LiveStream {
+  id: string;
+  title: string;
+  user_id: string;
+  viewer_count: number;
+  created_at: string;
+  profiles: {
+    id: string;
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    verified: boolean;
+    badge_type: string | null;
+  };
+}
 
 interface Post {
   id: string;
@@ -38,6 +54,7 @@ interface Post {
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [createStoryOpen, setCreateStoryOpen] = useState(false);
   const navigate = useNavigate();
@@ -49,8 +66,9 @@ export default function Feed() {
     };
     loadUser();
     loadPosts();
+    loadLiveStreams();
 
-    const channel = supabase
+    const postsChannel = supabase
       .channel("posts-changes")
       .on(
         "postgres_changes",
@@ -65,8 +83,24 @@ export default function Feed() {
       )
       .subscribe();
 
+    const streamsChannel = supabase
+      .channel("streams-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_streams",
+        },
+        () => {
+          loadLiveStreams();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(streamsChannel);
     };
   }, []);
 
@@ -98,6 +132,32 @@ export default function Feed() {
     }
 
     setPosts(data || []);
+  };
+
+  const loadLiveStreams = async () => {
+    const { data, error } = await supabase
+      .from("live_streams")
+      .select(`
+        *,
+        profiles (
+          id,
+          username,
+          full_name,
+          avatar_url,
+          verified,
+          badge_type
+        )
+      `)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("Erro ao carregar streams:", error);
+      return;
+    }
+
+    setLiveStreams(data || []);
   };
 
   const handleLike = async (postId: string) => {
@@ -280,6 +340,72 @@ export default function Feed() {
           <div className="px-4 sm:px-0">
             <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
           </div>
+
+          {/* Live Streams Section */}
+          {liveStreams.length > 0 && (
+            <div className="px-4 sm:px-0 mt-4">
+              <Card className="bg-card border-0 sm:border sm:border-border rounded-none sm:rounded-xl overflow-hidden shadow-none sm:shadow-sm">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Radio className="w-5 h-5 text-red-600" />
+                      <h2 className="font-semibold text-foreground">Ao Vivo Agora</h2>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/live")}
+                      className="text-primary hover:text-primary"
+                    >
+                      Ver todos
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {liveStreams.map((stream) => (
+                      <div
+                        key={stream.id}
+                        onClick={() => navigate(`/live-watch/${stream.id}`)}
+                        className="flex-shrink-0 w-40 cursor-pointer group"
+                      >
+                        <div className="relative aspect-[9/16] rounded-lg overflow-hidden bg-gradient-to-br from-red-500 to-pink-600 mb-2">
+                          <Avatar className="w-full h-full">
+                            <AvatarImage src={stream.profiles.avatar_url} className="object-cover" />
+                            <AvatarFallback className="text-4xl text-white">
+                              {stream.profiles.username[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          
+                          <div className="absolute top-2 left-2 flex items-center gap-1 bg-red-600 px-2 py-0.5 rounded text-xs text-white font-semibold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            AO VIVO
+                          </div>
+
+                          <div className="absolute bottom-2 left-2 right-2">
+                            <div className="flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-white text-xs">
+                              <Users className="w-3 h-3" />
+                              <span>{stream.viewer_count}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="px-1">
+                          <p className="text-sm font-medium line-clamp-1 text-foreground group-hover:text-primary">
+                            {stream.profiles.full_name || stream.profiles.username}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {stream.title}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Feed - Estilo Facebook Moderno */}
           <div className="space-y-4 mt-4">
