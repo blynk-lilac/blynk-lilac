@@ -139,11 +139,15 @@ export default function EditProfile() {
     const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
     
     // Criar post temporário da foto de perfil (24 horas)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
     await supabase.from("posts").insert({
       user_id: userId,
-      content: "Atualizou a foto de perfil",
+      content: `${profile?.username || 'Usuário'} atualizou a foto de perfil`,
       image_url: data.publicUrl,
       visibility: "public",
+      expires_at: expiresAt.toISOString(),
     });
     
     return data.publicUrl;
@@ -172,9 +176,10 @@ export default function EditProfile() {
     
     await supabase.from("posts").insert({
       user_id: userId,
-      content: "Atualizou a foto de capa",
+      content: `${profile?.username || 'Usuário'} atualizou a foto de capa`,
       image_url: data.publicUrl,
       visibility: "public",
+      expires_at: expiresAt.toISOString(),
     });
     
     return data.publicUrl;

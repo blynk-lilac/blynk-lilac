@@ -93,7 +93,7 @@ export default function Comments() {
       .select(`
         *,
         profiles (username, avatar_url, verified, badge_type),
-        likes:likes(count),
+        likes:post_likes(count),
         comments:comments(count)
       `)
       .eq("id", postId)
