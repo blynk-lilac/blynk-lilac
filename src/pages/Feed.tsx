@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageSquare, Repeat2 } from "lucide-react";
+import { Heart, MessageSquare, Share2, MoreHorizontal, Globe } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import VerificationBadge from "@/components/VerificationBadge";
 import PostMenu from "@/components/PostMenu";
+import { Separator } from "@/components/ui/separator";
 
 interface Post {
   id: string;
@@ -149,77 +150,87 @@ export default function Feed() {
 
       if (error) throw error;
 
-      toast.success("Publicação recompartilhada!");
+      toast.success("Publicação compartilhada!");
       loadPosts();
     } catch (error: any) {
-      toast.error("Erro ao recompartilhar");
+      toast.error("Erro ao compartilhar");
     }
   };
 
   return (
     <ProtectedRoute>
       <div 
-        className="min-h-screen bg-background pb-16"
+        className="min-h-screen bg-background pb-20"
         onDoubleClick={handleDoubleClick}
       >
         <Navbar />
 
-        <div className="container mx-auto max-w-2xl px-3 py-4">
+        <div className="container mx-auto max-w-2xl px-0 sm:px-4 py-4">
           {/* Stories Bar */}
-          <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
+          <div className="px-4 sm:px-0">
+            <StoriesBar onCreateStory={() => setCreateStoryOpen(true)} />
+          </div>
 
-          {/* Posts - Estilo Facebook */}
-          <div className="space-y-4">
+          {/* Feed - Estilo Facebook Moderno */}
+          <div className="space-y-4 mt-4">
             {posts.map((post) => (
-              <Card key={post.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-shadow">
+              <Card key={post.id} className="bg-card border-0 sm:border sm:border-border rounded-none sm:rounded-xl overflow-hidden shadow-none sm:shadow-sm hover:sm:shadow-md transition-all">
                 {/* Header do Post */}
-                <div className="p-4 flex items-start gap-3">
-                  <Link to={`/profile/${post.profiles?.id}`}>
-                    <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
-                      <AvatarImage src={post.profiles?.avatar_url} />
-                      <AvatarFallback className="text-sm bg-primary/10 text-primary font-semibold">
-                        {post.profiles?.username?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Link 
-                        to={`/profile/${post.profiles?.id}`} 
-                        className="hover:underline"
-                      >
-                        <span className="text-sm font-semibold text-foreground">
-                          {post.profiles?.username}
-                        </span>
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Link to={`/profile/${post.profiles?.id}`} className="flex-shrink-0">
+                        <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-transparent hover:ring-primary/20 transition-all">
+                          <AvatarImage src={post.profiles?.avatar_url} />
+                          <AvatarFallback className="text-sm bg-primary/10 text-primary font-bold">
+                            {post.profiles?.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                       </Link>
-                      {post.profiles?.verified && (
-                        <VerificationBadge badgeType={post.profiles?.badge_type} className="w-4 h-4" />
-                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Link 
+                            to={`/profile/${post.profiles?.id}`} 
+                            className="hover:underline font-semibold text-[15px] truncate"
+                          >
+                            {post.profiles?.full_name || post.profiles?.username}
+                          </Link>
+                          {post.profiles?.verified && (
+                            <VerificationBadge badgeType={post.profiles?.badge_type} className="w-4 h-4 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
+                          <span>
+                            {formatDistanceToNow(new Date(post.created_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </span>
+                          <span>•</span>
+                          <Globe className="h-3 w-3" />
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(post.created_at), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })}
-                    </span>
+
+                    <PostMenu 
+                      postId={post.id}
+                      isOwner={post.user_id === currentUserId}
+                      onDelete={loadPosts}
+                    />
                   </div>
 
-                  <PostMenu 
-                    postId={post.id}
-                    isOwner={post.user_id === currentUserId}
-                    onDelete={loadPosts}
-                  />
+                  {/* Conteúdo do Post */}
+                  {post.content && (
+                    <p className="text-[15px] text-foreground break-words whitespace-pre-wrap leading-5">
+                      {post.content}
+                    </p>
+                  )}
                 </div>
-
-                {/* Conteúdo do Post */}
-                {post.content && (
-                  <p className="px-4 pb-3 text-sm text-foreground break-words whitespace-pre-wrap">{post.content}</p>
-                )}
 
                 {/* Mídia */}
                 {post.media_urls && post.media_urls.length > 0 && (
-                  <div className="w-full bg-muted/30">
+                  <div className="w-full bg-black/5">
                     {post.media_urls.map((url, index) => {
                       const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
                       return isVideo ? (
@@ -227,14 +238,14 @@ export default function Feed() {
                           key={index}
                           src={url} 
                           controls 
-                          className="w-full max-h-[500px] object-contain bg-black"
+                          className="w-full max-h-[600px] object-contain"
                         />
                       ) : (
                         <img 
                           key={index}
                           src={url} 
                           alt="Post" 
-                          className="w-full max-h-[500px] object-cover"
+                          className="w-full max-h-[600px] object-cover"
                         />
                       );
                     })}
@@ -242,81 +253,99 @@ export default function Feed() {
                 )}
 
                 {post.image_url && !post.media_urls && (
-                  <div className="w-full bg-muted/30">
+                  <div className="w-full bg-black/5">
                     <img 
                       src={post.image_url} 
                       alt="Post" 
-                      className="w-full max-h-[500px] object-cover"
+                      className="w-full max-h-[600px] object-cover"
                     />
                   </div>
                 )}
 
                 {post.video_url && !post.media_urls && (
-                  <div className="w-full bg-muted/30">
+                  <div className="w-full bg-black/5">
                     <video 
                       src={post.video_url} 
                       controls 
-                      className="w-full max-h-[500px] object-contain bg-black"
+                      className="w-full max-h-[600px] object-contain"
                     />
                   </div>
                 )}
 
-                {/* Estatísticas */}
-                <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border">
-                  <span>
-                    {post.post_likes && post.post_likes.length > 0 && (
-                      <span className="hover:underline cursor-pointer">
-                        {post.post_likes.length} {post.post_likes.length === 1 ? 'curtida' : 'curtidas'}
-                      </span>
-                    )}
-                  </span>
-                  <span>
-                    {post.comments && post.comments.length > 0 && (
-                      <button
-                        onClick={() => navigate(`/comments/${post.id}`)}
-                        className="hover:underline"
-                      >
-                        {post.comments.length === 1 ? '1 comentário' : `${post.comments.length} comentários`}
-                      </button>
-                    )}
-                  </span>
-                </div>
+                {/* Estatísticas e Ações */}
+                <div className="px-4 pb-2">
+                  {/* Contadores */}
+                  <div className="flex items-center justify-between py-2 text-[13px] text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      {post.post_likes && post.post_likes.length > 0 && (
+                        <>
+                          <div className="flex items-center">
+                            <div className="w-[18px] h-[18px] rounded-full bg-primary flex items-center justify-center">
+                              <Heart className="h-2.5 w-2.5 fill-white text-white" />
+                            </div>
+                          </div>
+                          <span className="hover:underline cursor-pointer">
+                            {post.post_likes.length}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {post.comments && post.comments.length > 0 && (
+                        <button
+                          onClick={() => navigate(`/comments/${post.id}`)}
+                          className="hover:underline"
+                        >
+                          {post.comments.length} {post.comments.length === 1 ? 'comentário' : 'comentários'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Ações do Post */}
-                <div className="px-4 pb-3 pt-2 flex items-center gap-1 border-t border-border">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
-                    onClick={() => handleLike(post.id)}
-                  >
-                    <Heart 
-                      className={`h-5 w-5 transition-all ${
+                  <Separator className="mb-1" />
+
+                  {/* Botões de Ação */}
+                  <div className="flex items-center justify-around -mx-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 gap-2 hover:bg-muted/70 rounded-lg h-9 font-semibold"
+                      onClick={() => handleLike(post.id)}
+                    >
+                      <Heart 
+                        className={`h-[18px] w-[18px] transition-all ${
+                          post.post_likes?.some(like => like.user_id === currentUserId)
+                            ? "fill-primary text-primary"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                      <span className={`text-[15px] ${
                         post.post_likes?.some(like => like.user_id === currentUserId)
-                          ? "fill-red-500 text-red-500"
+                          ? "text-primary"
                           : "text-muted-foreground"
-                      }`}
-                    />
-                    <span className="text-sm font-medium text-muted-foreground">Curtir</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
-                    onClick={() => navigate(`/comments/${post.id}`)}
-                  >
-                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Comentar</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex-1 gap-2 hover:bg-muted/50 rounded-lg"
-                    onClick={() => handleRepost(post.id)}
-                  >
-                    <Repeat2 className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Compartilhar</span>
-                  </Button>
+                      }`}>
+                        Gosto
+                      </span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 gap-2 hover:bg-muted/70 rounded-lg h-9 font-semibold"
+                      onClick={() => navigate(`/comments/${post.id}`)}
+                    >
+                      <MessageSquare className="h-[18px] w-[18px] text-muted-foreground" />
+                      <span className="text-[15px] text-muted-foreground">Comentar</span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 gap-2 hover:bg-muted/70 rounded-lg h-9 font-semibold"
+                      onClick={() => handleRepost(post.id)}
+                    >
+                      <Share2 className="h-[18px] w-[18px] text-muted-foreground" />
+                      <span className="text-[15px] text-muted-foreground">Partilhar</span>
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
