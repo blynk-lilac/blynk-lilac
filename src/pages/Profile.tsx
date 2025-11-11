@@ -42,6 +42,15 @@ interface Profile {
   banner_url?: string;
 }
 
+interface Friend {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string;
+  verified?: boolean;
+  badge_type?: string | null;
+}
+
 interface Post {
   id: string;
   content: string;
@@ -70,6 +79,7 @@ export default function Profile() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"followers" | "following" | "friends">("followers");
   const [modalUsers, setModalUsers] = useState<Profile[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   useEffect(() => {
     loadProfile();
@@ -93,6 +103,7 @@ export default function Profile() {
       setProfile(profileData);
       loadStats(profileId);
       loadPosts(profileId);
+      loadFriends(profileId);
       
       if (profileId !== user.id) {
         checkFollowing(user.id, profileId);
@@ -150,6 +161,27 @@ export default function Profile() {
       .maybeSingle();
 
     setIsFriend(!!data);
+  };
+
+  const loadFriends = async (profileId: string) => {
+    const { data } = await supabase
+      .from("friendships")
+      .select("*")
+      .or(`user_id_1.eq.${profileId},user_id_2.eq.${profileId}`);
+
+    if (data) {
+      const friendIds = data.map(f =>
+        f.user_id_1 === profileId ? f.user_id_2 : f.user_id_1
+      );
+      
+      if (friendIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url, verified, badge_type")
+          .in("id", friendIds);
+        setFriends(profiles || []);
+      }
+    }
   };
 
   const loadPosts = async (profileId: string) => {
@@ -559,12 +591,64 @@ export default function Profile() {
               </div>
             </TabsContent>
 
-            <TabsContent value="about" className="p-4">
-              <Card className="p-6 border">
-                <h3 className="font-bold text-lg mb-4">Sobre</h3>
-                <p className="text-sm text-muted-foreground">
-                  {profile.bio || "Sem informações adicionais"}
+            <TabsContent value="about" className="mt-0 space-y-4">
+              {/* Bio */}
+              {profile.bio && (
+                <Card className="m-4 p-4 border">
+                  <h3 className="font-bold text-lg mb-3">Sobre</h3>
+                  <p className="text-sm">{profile.bio}</p>
+                </Card>
+              )}
+
+              {/* Amigos */}
+              <Card className="m-4 p-4 border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg">Amigos</h3>
+                  <button
+                    onClick={() => handleOpenModal("friends")}
+                    className="text-primary hover:underline text-sm font-semibold"
+                  >
+                    Ver tudo
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {friendsCount} amigos
                 </p>
+                {friends.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {friends.slice(0, 6).map((friend) => (
+                      <Link
+                        key={friend.id}
+                        to={`/profile/${friend.id}`}
+                        className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <Avatar className="h-20 w-20">
+                          <AvatarImage src={friend.avatar_url} />
+                          <AvatarFallback className="text-lg">
+                            {friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-center w-full">
+                          <div className="flex items-center justify-center gap-1">
+                            <p className="text-sm font-semibold truncate">
+                              {friend.full_name || friend.username}
+                            </p>
+                            {friend.verified && (
+                              <VerificationBadge
+                                badgeType={friend.badge_type}
+                                className="w-3 h-3 flex-shrink-0"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum amigo ainda
+                  </p>
+                )}
               </Card>
             </TabsContent>
 
