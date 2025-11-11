@@ -568,8 +568,27 @@ export default function Profile() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="photos" className="p-4">
-              <p className="text-center text-muted-foreground">Nenhuma foto ainda</p>
+            <TabsContent value="photos" className="mt-0">
+              <div className="grid grid-cols-3 gap-1 p-1">
+                {posts
+                  .filter(post => post.image_url)
+                  .map((post) => (
+                    <div key={post.id} className="aspect-square overflow-hidden bg-muted">
+                      <img 
+                        src={post.image_url} 
+                        alt="Foto"
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => navigate(`/comments/${post.id}`)}
+                      />
+                    </div>
+                  ))
+                }
+                {posts.filter(post => post.image_url).length === 0 && (
+                  <div className="col-span-3 text-center py-8">
+                    <p className="text-muted-foreground">Nenhuma foto ainda</p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="reels" className="p-4">

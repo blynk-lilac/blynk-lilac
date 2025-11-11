@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Friends from "./pages/Friends";
 import Messages from "./pages/Messages";
 import Chat from "./pages/Chat";
+import GroupChat from "./pages/GroupChat";
 import Comments from "./pages/Comments";
 import CommentsVideo from "./pages/CommentsVideo";
 import EditProfile from "./pages/EditProfile";
@@ -80,6 +81,7 @@ const App = () => {
           <Route path="/friends" element={<Friends />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/chat/:userId" element={<Chat />} />
+          <Route path="/group/:groupId" element={<GroupChat />} />
           <Route path="/comments/:postId" element={<Comments />} />
           <Route path="/comments-video/:videoId" element={<CommentsVideo />} />
           <Route path="/verification" element={<RequestVerification />} />

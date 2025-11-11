@@ -137,6 +137,15 @@ export default function EditProfile() {
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+    
+    // Criar post temporário da foto de perfil (24 horas)
+    await supabase.from("posts").insert({
+      user_id: userId,
+      content: "Atualizou a foto de perfil",
+      image_url: data.publicUrl,
+      visibility: "public",
+    });
+    
     return data.publicUrl;
   };
 
@@ -156,6 +165,18 @@ export default function EditProfile() {
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage.from("post-images").getPublicUrl(fileName);
+    
+    // Criar post temporário da foto de capa (24 horas)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
+    await supabase.from("posts").insert({
+      user_id: userId,
+      content: "Atualizou a foto de capa",
+      image_url: data.publicUrl,
+      visibility: "public",
+    });
+    
     return data.publicUrl;
   };
 

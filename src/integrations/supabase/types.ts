@@ -237,6 +237,103 @@ export type Database = {
         }
         Relationships: []
       }
+      group_chats: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          is_admin: boolean | null
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          audio_url: string | null
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          read_by: string[] | null
+          sender_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          read_by?: string[] | null
+          sender_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          read_by?: string[] | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           audio_url: string | null

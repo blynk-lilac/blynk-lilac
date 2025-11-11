@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
@@ -7,13 +8,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Users, Plus } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Friend {
   id: string;
@@ -34,13 +43,24 @@ interface Message {
   audio_url?: string;
 }
 
+interface Group {
+  id: string;
+  name: string;
+  avatar_url?: string;
+}
+
 export default function Messages() {
+  const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingChannelRef = useRef<any>(null);
   const { onlineUsers } = useOnlineStatus();
@@ -48,7 +68,82 @@ export default function Messages() {
   useEffect(() => {
     loadCurrentUser();
     loadFriends();
+    loadGroups();
   }, []);
+
+  const loadGroups = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: groupMembers } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .eq("user_id", user.id);
+
+    if (!groupMembers) return;
+
+    const groupIds = groupMembers.map(gm => gm.group_id);
+
+    const { data: groupData } = await supabase
+      .from("group_chats")
+      .select("id, name, avatar_url")
+      .in("id", groupIds);
+
+    setGroups(groupData || []);
+  };
+
+  const createGroup = async () => {
+    if (!groupName.trim() || selectedMembers.size === 0) {
+      toast.error("Adicione um nome e membros ao grupo");
+      return;
+    }
+
+    try {
+      const { data: groupData, error: groupError } = await supabase
+        .from("group_chats")
+        .insert({
+          name: groupName,
+          created_by: currentUserId,
+        })
+        .select()
+        .single();
+
+      if (groupError) throw groupError;
+
+      // Adicionar criador como admin
+      await supabase.from("group_members").insert({
+        group_id: groupData.id,
+        user_id: currentUserId,
+        is_admin: true,
+      });
+
+      // Adicionar membros selecionados
+      const memberInserts = Array.from(selectedMembers).map(memberId => ({
+        group_id: groupData.id,
+        user_id: memberId,
+      }));
+
+      await supabase.from("group_members").insert(memberInserts);
+
+      toast.success("Grupo criado!");
+      setCreateGroupOpen(false);
+      setGroupName("");
+      setSelectedMembers(new Set());
+      loadGroups();
+    } catch (error: any) {
+      toast.error("Erro ao criar grupo");
+    }
+  };
+
+  const toggleMember = (memberId: string) => {
+    const newSet = new Set(selectedMembers);
+    if (newSet.has(memberId)) {
+      newSet.delete(memberId);
+    } else {
+      newSet.add(memberId);
+    }
+    setSelectedMembers(newSet);
+  };
 
   useEffect(() => {
     if (selectedFriend) {
@@ -199,40 +294,142 @@ export default function Messages() {
           <Navbar />
           
           <div className="container mx-auto max-w-2xl px-4 py-4">
-            <h1 className="text-2xl font-bold mb-4">Mensagens</h1>
-            <div className="space-y-2">
-              {friends.map((friend) => {
-                const isOnline = onlineUsers.has(friend.id);
-                return (
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold">Mensagens</h1>
+              <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full">
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Grupo</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Nome do grupo"
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
+                    />
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      <p className="text-sm font-semibold">Adicionar Membros:</p>
+                      {friends.map((friend) => (
+                        <Card
+                          key={friend.id}
+                          className={`p-3 cursor-pointer ${
+                            selectedMembers.has(friend.id) ? "bg-primary/10" : ""
+                          }`}
+                          onClick={() => toggleMember(friend.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={friend.avatar_url} />
+                              <AvatarFallback>
+                                {friend.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-sm">
+                                {friend.username}
+                              </span>
+                              {friend.verified && (
+                                <VerificationBadge
+                                  badgeType={friend.badge_type}
+                                  className="w-4 h-4"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                    <Button onClick={createGroup} className="w-full">
+                      Criar Grupo
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Tabs defaultValue="friends" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="friends">Amigos</TabsTrigger>
+                <TabsTrigger value="groups">Grupos</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="friends" className="space-y-2">
+                {friends.map((friend) => {
+                  const isOnline = onlineUsers.has(friend.id);
+                  return (
+                    <Card
+                      key={friend.id}
+                      onClick={() => setSelectedFriend(friend)}
+                      className="p-4 cursor-pointer hover:bg-muted/50 transition-colors border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={friend.avatar_url} />
+                            <AvatarFallback>
+                              {friend.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div
+                            className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background ${
+                              isOnline ? "bg-green-500" : "bg-red-500"
+                            }`}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <p className="font-semibold text-sm truncate">
+                              {friend.username}
+                            </p>
+                            {friend.verified && (
+                              <VerificationBadge
+                                badgeType={friend.badge_type}
+                                className="w-4 h-4"
+                              />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {friend.full_name}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </TabsContent>
+
+              <TabsContent value="groups" className="space-y-2">
+                {groups.map((group) => (
                   <Card
-                    key={friend.id}
-                    onClick={() => setSelectedFriend(friend)}
+                    key={group.id}
+                    onClick={() => navigate(`/group/${group.id}`)}
                     className="p-4 cursor-pointer hover:bg-muted/50 transition-colors border"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={friend.avatar_url} />
-                          <AvatarFallback>{friend.username?.[0]?.toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                      </div>
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={group.avatar_url} />
+                        <AvatarFallback>
+                          <Users className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <p className="font-semibold text-sm truncate">{friend.username}</p>
-                          {friend.verified && (
-                            <VerificationBadge badgeType={friend.badge_type} className="w-4 h-4" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {friend.full_name}
+                        <p className="font-semibold text-sm truncate">
+                          {group.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Grupo
                         </p>
                       </div>
                     </div>
                   </Card>
-                );
-              })}
-            </div>
+                ))}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       ) : (
