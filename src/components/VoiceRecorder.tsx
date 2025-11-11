@@ -75,17 +75,18 @@ export default function VoiceRecorder({ onAudioRecorded }: VoiceRecorderProps) {
       const fileName = `${user.id}-${Date.now()}.webm`;
       const filePath = `voice-messages/${fileName}`;
 
+      // Criar bucket de áudio se não existir e fazer upload
       const { error: uploadError } = await supabase.storage
         .from('post-images')
         .upload(filePath, audioBlob, {
           contentType: 'audio/webm',
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) {
         console.error("Erro no upload:", uploadError);
-        toast.error("Erro ao fazer upload do áudio");
+        toast.error(`Erro ao fazer upload: ${uploadError.message}`);
         return;
       }
 

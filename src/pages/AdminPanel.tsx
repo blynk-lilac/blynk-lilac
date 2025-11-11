@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Shield, Flag, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle, XCircle, Shield, Flag, Eye, TrendingUp, Loader2 } from "lucide-react";
 import badgeGold from "@/assets/badge-gold.webp";
 import badgePurple from "@/assets/badge-purple.png";
 import badgeSilver from "@/assets/badge-silver.webp";
 import { Link } from "react-router-dom";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface VerificationRequest {
   id: string;
@@ -51,12 +53,31 @@ const badgeOptions: BadgeOption[] = [
   { type: 'silver', name: 'Verificado Prata', icon: badgeSilver },
 ];
 
+interface Post {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  image_url?: string;
+  profiles: {
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    verified: boolean;
+    badge_type: string | null;
+  };
+  likes: { count: number }[];
+}
+
 export default function AdminPanel() {
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedBadges, setSelectedBadges] = useState<Record<string, string>>({});
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [searchPostId, setSearchPostId] = useState("");
+  const [boosting, setBoosting] = useState(false);
 
   useEffect(() => {
     checkAdminStatus();
@@ -81,6 +102,7 @@ export default function AdminPanel() {
         setIsAdmin(true);
         loadRequests();
         loadReports();
+        loadRecentPosts();
       }
     } catch (error) {
       console.error("Erro ao verificar admin:", error);
@@ -88,6 +110,110 @@ export default function AdminPanel() {
       toast.error("Erro ao verificar permissões");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecentPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles (username, full_name, avatar_url, verified, badge_type),
+          likes:post_likes(count)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar posts:", error);
+      toast.error("Erro ao carregar posts");
+    }
+  };
+
+  const handleBoostPost = async (postId: string) => {
+    setBoosting(true);
+    try {
+      // Buscar todos os usuários
+      const { data: users, error: usersError } = await supabase
+        .from("profiles")
+        .select("id");
+
+      if (usersError) throw usersError;
+
+      if (!users || users.length === 0) {
+        toast.error("Nenhum usuário encontrado");
+        return;
+      }
+
+      // Buscar likes existentes para não duplicar
+      const { data: existingLikes } = await supabase
+        .from("post_likes")
+        .select("user_id")
+        .eq("post_id", postId);
+
+      const existingUserIds = new Set(existingLikes?.map(l => l.user_id) || []);
+
+      // Filtrar apenas usuários que ainda não deram like
+      const newLikes = users
+        .filter(u => !existingUserIds.has(u.id))
+        .map(u => ({
+          post_id: postId,
+          user_id: u.id,
+        }));
+
+      if (newLikes.length === 0) {
+        toast.success("Todos os usuários já curtiram este post!");
+        return;
+      }
+
+      // Inserir todos os likes de uma vez
+      const { error: likesError } = await supabase
+        .from("post_likes")
+        .insert(newLikes);
+
+      if (likesError) throw likesError;
+
+      toast.success(`Boost aplicado! ${newLikes.length} novos likes adicionados!`);
+      loadRecentPosts();
+    } catch (error: any) {
+      console.error("Erro ao dar boost:", error);
+      toast.error(`Erro ao dar boost: ${error.message}`);
+    } finally {
+      setBoosting(false);
+    }
+  };
+
+  const searchPostById = async () => {
+    if (!searchPostId.trim()) {
+      toast.error("Digite um ID de publicação");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles (username, full_name, avatar_url, verified, badge_type),
+          likes:post_likes(count)
+        `)
+        .eq("id", searchPostId)
+        .single();
+
+      if (error || !data) {
+        toast.error("Publicação não encontrada");
+        return;
+      }
+
+      setPosts([data, ...posts.filter(p => p.id !== data.id)]);
+      setSearchPostId("");
+      toast.success("Publicação encontrada!");
+    } catch (error: any) {
+      console.error("Erro ao buscar post:", error);
+      toast.error("Erro ao buscar publicação");
     }
   };
 
@@ -280,6 +406,10 @@ export default function AdminPanel() {
                   <Badge className="ml-2 bg-destructive">{reports.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="boost" className="flex-1">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Boost de Posts
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="requests" className="space-y-4">
@@ -401,6 +531,99 @@ export default function AdminPanel() {
                   </Card>
                 ))
               )}
+            </TabsContent>
+
+            <TabsContent value="boost" className="space-y-6">
+              <Card className="p-6 bg-card border-border">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Boost de Publicações
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione likes de todos os usuários do site em uma publicação específica
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="ID da publicação para buscar"
+                      value={searchPostId}
+                      onChange={(e) => setSearchPostId(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && searchPostById()}
+                    />
+                    <Button onClick={searchPostById} variant="outline">
+                      Buscar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="space-y-4">
+                {posts.length === 0 ? (
+                  <Card className="p-8 bg-card border-border text-center">
+                    <p className="text-muted-foreground">Nenhuma publicação encontrada</p>
+                  </Card>
+                ) : (
+                  posts.map((post) => (
+                    <Card key={post.id} className="p-6 bg-card border-border">
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={post.profiles.avatar_url} />
+                            <AvatarFallback>
+                              {post.profiles.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold">{post.profiles.full_name || post.profiles.username}</p>
+                              {post.profiles.verified && (
+                                <VerificationBadge badgeType={post.profiles.badge_type} />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">@{post.profiles.username}</p>
+                          </div>
+                        </div>
+
+                        <p className="text-sm line-clamp-3">{post.content}</p>
+
+                        {post.image_url && (
+                          <img
+                            src={post.image_url}
+                            alt="Post"
+                            className="w-full max-h-64 object-cover rounded-lg"
+                          />
+                        )}
+
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{post.likes[0]?.count || 0} curtidas</span>
+                          <span className="text-xs">ID: {post.id}</span>
+                        </div>
+
+                        <Button
+                          onClick={() => handleBoostPost(post.id)}
+                          disabled={boosting}
+                          className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                        >
+                          {boosting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Aplicando Boost...
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                              Dar Boost (Adicionar Todos os Likes)
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>

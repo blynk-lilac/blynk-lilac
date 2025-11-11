@@ -124,7 +124,7 @@ export default function LiveStreaming() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await startCamera(facingMode);
+      const stream = await startCamera(facingMode);
 
       const { data, error } = await supabase
         .from("live_streams")
@@ -141,11 +141,11 @@ export default function LiveStreaming() {
       setCurrentStreamId(data.id);
       setIsStreaming(true);
       setCreateDialogOpen(false);
-      toast.success("Stream iniciado!");
+      toast.success("Stream iniciado! Sua câmera está ao vivo.");
 
     } catch (error: any) {
       console.error("Erro ao criar stream:", error);
-      toast.error("Erro ao iniciar stream");
+      toast.error("Erro ao iniciar stream: " + error.message);
     }
   };
 

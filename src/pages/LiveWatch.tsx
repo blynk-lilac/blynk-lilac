@@ -158,10 +158,9 @@ export default function LiveWatch() {
 
         {/* Video Container */}
         <div className="relative w-full h-screen flex items-center justify-center bg-black">
-          {/* Placeholder - Em produção real, aqui viria o player de vídeo WebRTC */}
           <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-pink-600/20 flex items-center justify-center">
-            <div className="text-center text-white">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center mx-auto mb-6">
+            <div className="text-center text-white p-8">
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center mx-auto mb-6 animate-pulse">
                 <Avatar className="w-28 h-28">
                   <AvatarImage src={stream.profiles.avatar_url} />
                   <AvatarFallback className="text-4xl">
@@ -169,8 +168,17 @@ export default function LiveWatch() {
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <p className="text-lg opacity-80">Stream ao vivo de</p>
-              <p className="text-2xl font-bold">{stream.profiles.full_name || stream.profiles.username}</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xl font-bold">AO VIVO</span>
+                </div>
+                <p className="text-lg opacity-90">{stream.profiles.full_name || stream.profiles.username}</p>
+                <p className="text-base opacity-70 max-w-md mx-auto">{stream.title}</p>
+                <p className="text-sm opacity-60 mt-4">
+                  🎥 Transmissão em tempo real
+                </p>
+              </div>
             </div>
           </div>
         </div>
