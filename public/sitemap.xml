@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://blynk-lilac.vercel.app/feed</loc>
-  </url>
-  <url>
-    <loc>https://blynk-lilac-lyart.vercel.app/</loc>
-  </url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/signup</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/feed</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/create</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/videos</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/profile</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/edit-profile</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/admin</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/api-keys</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/install</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/reset-password</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/friends</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/messages</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/groups</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/verification</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/live</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/terms</loc></url>
+  <url><loc>https://blynk-lilac-lyart.vercel.app/help</loc></url>
 </urlset>
+
