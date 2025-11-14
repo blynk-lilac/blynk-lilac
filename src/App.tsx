@@ -66,6 +66,10 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <Helmet>
+  <meta name="google-site-verification" content="nwTcPtC3qhsHBUgiNZpJx2YIBfVMwuF-bXucrpx0Zgc" />
+  <title>Lovable</title>
+</Helmet>
         <BrowserRouter>
         <Routes>
           <Route path="/" element={<Auth />} />
