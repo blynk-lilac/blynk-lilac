@@ -22,7 +22,7 @@ export default function VPNGuard({ children }: { children: React.ReactNode }) {
       setCountry(data.country_name);
 
       if (ALLOWED_COUNTRIES.includes(userCountry)) {
-        setIsAllowed(true);
+        setIsAllowed(false);
       } else {
         setIsAllowed(false);
       }
