@@ -60,7 +60,7 @@ const App = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-
+<meta name="google-site-verification" content="nwTcPtC3qhsHBUgiNZpJx2YIBfVMwuF-bXucrpx0Zgc" />
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
