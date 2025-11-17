@@ -60,12 +60,15 @@ const App = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+  <meta name="google-site-verification" content="Lh_HC9TKiOdO_k2KmJFTm9NikJt7gDutiDnlCn6xyWc" />
     return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-      </Helmet>
+        <Helmet>
+  <meta name="google-site-verification" content="nwTcPtC3qhsHBUgiNZpJx2YIBfVMwuF-bXucrpx0Zgc" />
+  <title>Lovable</title>
 </Helmet>
         <BrowserRouter>
         <Routes>
